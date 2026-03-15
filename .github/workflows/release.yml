@@ -1,0 +1,269 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+  id-token: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    name: Build (${{ matrix.target }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+            archive: tar.gz
+          - target: aarch64-unknown-linux-gnu
+            os: ubuntu-latest
+            archive: tar.gz
+            cross: true
+          - target: x86_64-unknown-linux-musl
+            os: ubuntu-latest
+            archive: tar.gz
+          - target: x86_64-apple-darwin
+            os: macos-14
+            archive: tar.gz
+          - target: aarch64-apple-darwin
+            os: macos-latest
+            archive: tar.gz
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+            archive: zip
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: cli
+          key: ${{ matrix.target }}
+
+      - name: Install cross
+        if: matrix.cross
+        run: cargo install cross --git https://github.com/cross-rs/cross
+
+      - name: Install musl-tools
+        if: contains(matrix.target, 'musl')
+        run: sudo apt-get update && sudo apt-get install -y musl-tools
+
+      - name: Build
+        working-directory: cli
+        shell: bash
+        run: |
+          if [ "${{ matrix.cross }}" = "true" ]; then
+            cross build --release --target ${{ matrix.target }}
+          else
+            cargo build --release --target ${{ matrix.target }}
+          fi
+
+      - name: Package (tar.gz)
+        if: matrix.archive == 'tar.gz'
+        shell: bash
+        run: |
+          cd cli/target/${{ matrix.target }}/release
+          tar czf ../../../../apm-${{ github.ref_name }}-${{ matrix.target }}.tar.gz apm
+          cd ../../../..
+          shasum -a 256 apm-${{ github.ref_name }}-${{ matrix.target }}.tar.gz > apm-${{ github.ref_name }}-${{ matrix.target }}.tar.gz.sha256
+
+      - name: Package (zip)
+        if: matrix.archive == 'zip'
+        shell: bash
+        run: |
+          cd cli/target/${{ matrix.target }}/release
+          7z a ../../../../apm-${{ github.ref_name }}-${{ matrix.target }}.zip apm.exe
+          cd ../../../..
+          sha256sum apm-${{ github.ref_name }}-${{ matrix.target }}.zip > apm-${{ github.ref_name }}-${{ matrix.target }}.zip.sha256
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: apm-${{ matrix.target }}
+          path: |
+            apm-${{ github.ref_name }}-${{ matrix.target }}.*
+
+  release:
+    name: Create GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: artifacts/*
+
+  npm-publish:
+    name: Publish npm packages
+    needs: [build, release]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Prepare platform packages
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+
+          declare -A TARGET_NPM=(
+            ["x86_64-unknown-linux-gnu"]="linux-x64"
+            ["aarch64-unknown-linux-gnu"]="linux-arm64"
+            ["x86_64-unknown-linux-musl"]="linux-x64-musl"
+            ["x86_64-apple-darwin"]="darwin-x64"
+            ["aarch64-apple-darwin"]="darwin-arm64"
+            ["x86_64-pc-windows-msvc"]="win32-x64-msvc"
+          )
+
+          for target in "${!TARGET_NPM[@]}"; do
+            pkg_dir="npm/${TARGET_NPM[$target]}"
+            mkdir -p "$pkg_dir/bin"
+
+            if [[ "$target" == *"windows"* ]]; then
+              cd "artifacts/apm-${target}"
+              7z x "apm-${GITHUB_REF_NAME}-${target}.zip" -o"../../${pkg_dir}/bin/"
+              cd ../..
+            else
+              tar xzf "artifacts/apm-${target}/apm-${GITHUB_REF_NAME}-${target}.tar.gz" -C "$pkg_dir/bin/"
+            fi
+
+            chmod +x "$pkg_dir/bin/"* 2>/dev/null || true
+
+            # Update version in package.json
+            cd "$pkg_dir"
+            npm version "$VERSION" --no-git-tag-version --allow-same-version
+            cd ../..
+          done
+
+      - name: Publish platform packages
+        shell: bash
+        run: |
+          for pkg_dir in npm/linux-x64 npm/linux-arm64 npm/linux-x64-musl npm/darwin-x64 npm/darwin-arm64 npm/win32-x64-msvc; do
+            echo "Publishing $pkg_dir..."
+            cd "$pkg_dir"
+            npm publish --access public --provenance
+            cd ../..
+          done
+
+      - name: Publish main wrapper package
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          cd npm/apm-cli
+
+          node -e "
+            const fs = require('fs');
+            const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+            pkg.version = '${VERSION}';
+            for (const dep of Object.keys(pkg.optionalDependencies || {})) {
+              pkg.optionalDependencies[dep] = '${VERSION}';
+            }
+            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+          "
+
+          npm publish --access public --provenance
+
+  homebrew:
+    name: Update Homebrew formula
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Generate Homebrew formula
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          REPO="orthogonalhq/apm"
+
+          SHA_DARWIN_ARM64=$(cat artifacts/apm-${GITHUB_REF_NAME}-aarch64-apple-darwin.tar.gz.sha256 | awk '{print $1}')
+          SHA_DARWIN_X64=$(cat artifacts/apm-${GITHUB_REF_NAME}-x86_64-apple-darwin.tar.gz.sha256 | awk '{print $1}')
+          SHA_LINUX_X64=$(cat artifacts/apm-${GITHUB_REF_NAME}-x86_64-unknown-linux-gnu.tar.gz.sha256 | awk '{print $1}')
+          SHA_LINUX_ARM64=$(cat artifacts/apm-${GITHUB_REF_NAME}-aarch64-unknown-linux-gnu.tar.gz.sha256 | awk '{print $1}')
+
+          cat > formula.rb << FORMULA
+          class Apm < Formula
+            desc "Agent Package Manager — a package manager for agent skills"
+            homepage "https://apm.orthg.nl"
+            license "MIT"
+            version "${VERSION}"
+
+            on_macos do
+              if Hardware::CPU.arm?
+                url "https://github.com/${REPO}/releases/download/${GITHUB_REF_NAME}/apm-${GITHUB_REF_NAME}-aarch64-apple-darwin.tar.gz"
+                sha256 "${SHA_DARWIN_ARM64}"
+              else
+                url "https://github.com/${REPO}/releases/download/${GITHUB_REF_NAME}/apm-${GITHUB_REF_NAME}-x86_64-apple-darwin.tar.gz"
+                sha256 "${SHA_DARWIN_X64}"
+              end
+            end
+
+            on_linux do
+              if Hardware::CPU.arm?
+                url "https://github.com/${REPO}/releases/download/${GITHUB_REF_NAME}/apm-${GITHUB_REF_NAME}-aarch64-unknown-linux-gnu.tar.gz"
+                sha256 "${SHA_LINUX_ARM64}"
+              else
+                url "https://github.com/${REPO}/releases/download/${GITHUB_REF_NAME}/apm-${GITHUB_REF_NAME}-x86_64-unknown-linux-gnu.tar.gz"
+                sha256 "${SHA_LINUX_X64}"
+              end
+            end
+
+            def install
+              bin.install "apm"
+            end
+
+            test do
+              assert_match "apm", shell_output("#{bin}/apm --version")
+            end
+          end
+          FORMULA
+
+      - name: Push to Homebrew tap
+        env:
+          TAP_GITHUB_TOKEN: ${{ secrets.TAP_GITHUB_TOKEN }}
+        run: |
+          git clone https://x-access-token:${TAP_GITHUB_TOKEN}@github.com/orthogonalhq/homebrew-apm.git tap
+          cp formula.rb tap/Formula/apm.rb
+          cd tap
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Formula/apm.rb
+          git commit -m "Update apm to ${GITHUB_REF_NAME}"
+          git push
