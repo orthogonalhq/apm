@@ -134,6 +134,28 @@ Search uses PostgreSQL full-text search with English tokenization. Queries are s
 
 ---
 
+### `POST /api/packages/:name/track`
+
+Track a download/install event for a package. Increments the package's download count.
+
+**Request:** No body required.
+
+**Response:**
+
+```json
+{ "ok": true }
+```
+
+**Errors:**
+
+| Status | Body |
+|--------|------|
+| `404` | `{ "error": "Not found" }` |
+
+The web UI calls this automatically when a user copies or downloads a SKILL.md file (once per page visit). The CLI should call this on `apm install`.
+
+---
+
 ### `POST /api/publish`
 
 Publish a package to the hosted registry.
@@ -148,7 +170,7 @@ The APM CLI uses this API under the hood:
 
 | CLI command | API call |
 |-------------|----------|
-| `apm install <name>` | `GET /api/packages/<name>` |
+| `apm install <name>` | `GET /api/packages/<name>` then `POST /api/packages/<name>/track` |
 | `apm search <query>` | `GET /api/search?q=<query>` |
 | `apm info <name>` | `GET /api/packages/<name>` |
 
