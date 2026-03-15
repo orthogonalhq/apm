@@ -15,6 +15,13 @@
       "when": 1773558670398,
       "tag": "0001_wonderful_spectrum",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1773563504312,
+      "tag": "0002_grey_gamora",
+      "breakpoints": true
     }
   ]
 }

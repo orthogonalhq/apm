@@ -13,6 +13,7 @@ export interface Package {
   category: string | null;
   tags: string[];
   compatibility: string[];
+  language: string;
 
   // Source
   sourceRepo: string;
@@ -61,6 +62,7 @@ export interface PackageListItem {
   category: string | null;
   tags: string[];
   compatibility: string[];
+  language: string;
   sourceRepo: string;
   repoOwner: string;
   author: string | null;

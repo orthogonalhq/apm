@@ -32,6 +32,7 @@ export const packages = pgTable(
       .array()
       .notNull()
       .default(sql`'{}'::text[]`),
+    language: varchar("language", { length: 16 }).notNull().default("en"),
 
     // ── Source ───────────────────────────────────────────────
     sourceRepo: varchar("source_repo", { length: 512 }).notNull(),
@@ -90,6 +91,7 @@ export const packages = pgTable(
     index("idx_packages_tags").using("gin", table.tags),
     index("idx_packages_compatibility").using("gin", table.compatibility),
     index("idx_packages_status").on(table.status),
+    index("idx_packages_language").on(table.language),
   ]
 );
 
