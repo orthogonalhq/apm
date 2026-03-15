@@ -5,9 +5,11 @@ import { useState, useCallback } from "react";
 export function CopyButton({
   text,
   className = "",
+  onAction,
 }: {
   text: string;
   className?: string;
+  onAction?: () => void;
 }) {
   const [copied, setCopied] = useState(false);
 
@@ -15,7 +17,8 @@ export function CopyButton({
     await navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
-  }, [text]);
+    onAction?.();
+  }, [text, onAction]);
 
   return (
     <button

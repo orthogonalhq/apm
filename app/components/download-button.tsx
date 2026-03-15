@@ -6,10 +6,12 @@ export function DownloadButton({
   content,
   filename,
   className = "",
+  onAction,
 }: {
   content: string;
   filename: string;
   className?: string;
+  onAction?: () => void;
 }) {
   const handleDownload = useCallback(() => {
     const blob = new Blob([content], { type: "text/markdown" });
@@ -19,7 +21,8 @@ export function DownloadButton({
     a.download = filename;
     a.click();
     URL.revokeObjectURL(url);
-  }, [content, filename]);
+    onAction?.();
+  }, [content, filename, onAction]);
 
   return (
     <button

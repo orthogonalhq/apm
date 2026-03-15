@@ -3,8 +3,8 @@ import { db, schema } from "@/lib/db";
 import { eq } from "drizzle-orm";
 import { codeToHtml } from "shiki";
 import { CopyButton } from "@/components/copy-button";
-import { DownloadButton } from "@/components/download-button";
 import { PanelBar } from "@/components/panel-bar";
+import { SkillActions } from "@/components/skill-actions";
 import type { Metadata } from "next";
 
 export const revalidate = 3600;
@@ -335,13 +335,7 @@ export default async function PackagePage({
               {/* SKILL.md content */}
               <div className="border-y border-white/[0.06]">
                 <PanelBar label="apm::skill.md" meta="raw">
-                  <div className="flex items-center gap-2">
-                    <CopyButton text={pkg.skillMdRaw} />
-                    <DownloadButton
-                      content={pkg.skillMdRaw}
-                      filename={`${pkg.name}.SKILL.md`}
-                    />
-                  </div>
+                  <SkillActions content={pkg.skillMdRaw} packageName={pkg.name} />
                 </PanelBar>
                 <SkillMdHighlight content={pkg.skillMdRaw} />
               </div>
