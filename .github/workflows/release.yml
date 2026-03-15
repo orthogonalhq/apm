@@ -2,8 +2,9 @@ name: Release
 
 on:
   push:
-    tags:
-      - "v*"
+    branches: [main]
+    paths:
+      - "cli/**"
 
 permissions:
   contents: write
@@ -13,8 +14,42 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  version:
+    name: Check version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      tag: ${{ steps.version.outputs.tag }}
+      should_release: ${{ steps.check.outputs.should_release }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract version from Cargo.toml
+        id: version
+        run: |
+          VERSION=$(grep '^version' cli/Cargo.toml | head -1 | sed 's/.*"\(.*\)".*/\1/')
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "tag=v${VERSION}" >> $GITHUB_OUTPUT
+          echo "Detected version: ${VERSION}"
+
+      - name: Check if tag already exists
+        id: check
+        run: |
+          TAG="v$(grep '^version' cli/Cargo.toml | head -1 | sed 's/.*"\(.*\)".*/\1/')"
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "Tag $TAG already exists, skipping release"
+            echo "should_release=false" >> $GITHUB_OUTPUT
+          else
+            echo "Tag $TAG does not exist, proceeding with release"
+            echo "should_release=true" >> $GITHUB_OUTPUT
+          fi
+
   build:
     name: Build (${{ matrix.target }})
+    needs: version
+    if: needs.version.outputs.should_release == 'true'
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -73,33 +108,40 @@ jobs:
         if: matrix.archive == 'tar.gz'
         shell: bash
         run: |
+          TAG="${{ needs.version.outputs.tag }}"
           cd cli/target/${{ matrix.target }}/release
-          tar czf ../../../../apm-${{ github.ref_name }}-${{ matrix.target }}.tar.gz apm
+          tar czf ../../../../apm-${TAG}-${{ matrix.target }}.tar.gz apm
           cd ../../../..
-          shasum -a 256 apm-${{ github.ref_name }}-${{ matrix.target }}.tar.gz > apm-${{ github.ref_name }}-${{ matrix.target }}.tar.gz.sha256
+          shasum -a 256 apm-${TAG}-${{ matrix.target }}.tar.gz > apm-${TAG}-${{ matrix.target }}.tar.gz.sha256
 
       - name: Package (zip)
         if: matrix.archive == 'zip'
         shell: bash
         run: |
+          TAG="${{ needs.version.outputs.tag }}"
           cd cli/target/${{ matrix.target }}/release
-          7z a ../../../../apm-${{ github.ref_name }}-${{ matrix.target }}.zip apm.exe
+          7z a ../../../../apm-${TAG}-${{ matrix.target }}.zip apm.exe
           cd ../../../..
-          sha256sum apm-${{ github.ref_name }}-${{ matrix.target }}.zip > apm-${{ github.ref_name }}-${{ matrix.target }}.zip.sha256
+          sha256sum apm-${TAG}-${{ matrix.target }}.zip > apm-${TAG}-${{ matrix.target }}.zip.sha256
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: apm-${{ matrix.target }}
           path: |
-            apm-${{ github.ref_name }}-${{ matrix.target }}.*
+            apm-${{ needs.version.outputs.tag }}-${{ matrix.target }}.*
 
   release:
     name: Create GitHub Release
-    needs: build
+    needs: [version, build]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Create tag
+        run: |
+          git tag ${{ needs.version.outputs.tag }}
+          git push origin ${{ needs.version.outputs.tag }}
 
       - uses: actions/download-artifact@v4
         with:
@@ -109,12 +151,13 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ needs.version.outputs.tag }}
           generate_release_notes: true
           files: artifacts/*
 
   npm-publish:
     name: Publish npm packages
-    needs: [build, release]
+    needs: [version, build, release]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -136,7 +179,8 @@ jobs:
       - name: Prepare platform packages
         shell: bash
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
+          VERSION="${{ needs.version.outputs.version }}"
+          TAG="${{ needs.version.outputs.tag }}"
 
           declare -A TARGET_NPM=(
             ["x86_64-unknown-linux-gnu"]="linux-x64"
@@ -153,10 +197,10 @@ jobs:
 
             if [[ "$target" == *"windows"* ]]; then
               cd "artifacts/apm-${target}"
-              7z x "apm-${GITHUB_REF_NAME}-${target}.zip" -o"../../${pkg_dir}/bin/"
+              7z x "apm-${TAG}-${target}.zip" -o"../../${pkg_dir}/bin/"
               cd ../..
             else
-              tar xzf "artifacts/apm-${target}/apm-${GITHUB_REF_NAME}-${target}.tar.gz" -C "$pkg_dir/bin/"
+              tar xzf "artifacts/apm-${target}/apm-${TAG}-${target}.tar.gz" -C "$pkg_dir/bin/"
             fi
 
             chmod +x "$pkg_dir/bin/"* 2>/dev/null || true
@@ -180,7 +224,7 @@ jobs:
       - name: Publish main wrapper package
         shell: bash
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
+          VERSION="${{ needs.version.outputs.version }}"
           cd npm/apm-cli
 
           node -e "
@@ -197,7 +241,7 @@ jobs:
 
   homebrew:
     name: Update Homebrew formula
-    needs: release
+    needs: [version, release]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -210,13 +254,14 @@ jobs:
       - name: Generate Homebrew formula
         shell: bash
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
+          VERSION="${{ needs.version.outputs.version }}"
+          TAG="${{ needs.version.outputs.tag }}"
           REPO="orthogonalhq/apm"
 
-          SHA_DARWIN_ARM64=$(cat artifacts/apm-${GITHUB_REF_NAME}-aarch64-apple-darwin.tar.gz.sha256 | awk '{print $1}')
-          SHA_DARWIN_X64=$(cat artifacts/apm-${GITHUB_REF_NAME}-x86_64-apple-darwin.tar.gz.sha256 | awk '{print $1}')
-          SHA_LINUX_X64=$(cat artifacts/apm-${GITHUB_REF_NAME}-x86_64-unknown-linux-gnu.tar.gz.sha256 | awk '{print $1}')
-          SHA_LINUX_ARM64=$(cat artifacts/apm-${GITHUB_REF_NAME}-aarch64-unknown-linux-gnu.tar.gz.sha256 | awk '{print $1}')
+          SHA_DARWIN_ARM64=$(cat artifacts/apm-${TAG}-aarch64-apple-darwin.tar.gz.sha256 | awk '{print $1}')
+          SHA_DARWIN_X64=$(cat artifacts/apm-${TAG}-x86_64-apple-darwin.tar.gz.sha256 | awk '{print $1}')
+          SHA_LINUX_X64=$(cat artifacts/apm-${TAG}-x86_64-unknown-linux-gnu.tar.gz.sha256 | awk '{print $1}')
+          SHA_LINUX_ARM64=$(cat artifacts/apm-${TAG}-aarch64-unknown-linux-gnu.tar.gz.sha256 | awk '{print $1}')
 
           cat > formula.rb << FORMULA
           class Apm < Formula
@@ -227,20 +272,20 @@ jobs:
 
             on_macos do
               if Hardware::CPU.arm?
-                url "https://github.com/${REPO}/releases/download/${GITHUB_REF_NAME}/apm-${GITHUB_REF_NAME}-aarch64-apple-darwin.tar.gz"
+                url "https://github.com/${REPO}/releases/download/${TAG}/apm-${TAG}-aarch64-apple-darwin.tar.gz"
                 sha256 "${SHA_DARWIN_ARM64}"
               else
-                url "https://github.com/${REPO}/releases/download/${GITHUB_REF_NAME}/apm-${GITHUB_REF_NAME}-x86_64-apple-darwin.tar.gz"
+                url "https://github.com/${REPO}/releases/download/${TAG}/apm-${TAG}-x86_64-apple-darwin.tar.gz"
                 sha256 "${SHA_DARWIN_X64}"
               end
             end
 
             on_linux do
               if Hardware::CPU.arm?
-                url "https://github.com/${REPO}/releases/download/${GITHUB_REF_NAME}/apm-${GITHUB_REF_NAME}-aarch64-unknown-linux-gnu.tar.gz"
+                url "https://github.com/${REPO}/releases/download/${TAG}/apm-${TAG}-aarch64-unknown-linux-gnu.tar.gz"
                 sha256 "${SHA_LINUX_ARM64}"
               else
-                url "https://github.com/${REPO}/releases/download/${GITHUB_REF_NAME}/apm-${GITHUB_REF_NAME}-x86_64-unknown-linux-gnu.tar.gz"
+                url "https://github.com/${REPO}/releases/download/${TAG}/apm-${TAG}-x86_64-unknown-linux-gnu.tar.gz"
                 sha256 "${SHA_LINUX_X64}"
               end
             end
@@ -265,5 +310,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add Formula/apm.rb
-          git commit -m "Update apm to ${GITHUB_REF_NAME}"
+          git commit -m "Update apm to ${{ needs.version.outputs.tag }}"
           git push
