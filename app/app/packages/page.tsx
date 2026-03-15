@@ -454,69 +454,65 @@ export default async function PackagesPage({
             label={q ? `apm::search "${q}"` : "apm::packages"}
           />
 
-          {/* Sort + Filters */}
-            <div className="flex flex-wrap items-center border-b border-white/[0.06]">
-              {/* Sort tabs */}
-              {sortTabs.map((opt) => {
-                const isActive = sort === opt.key;
-                return (
-                  <a
-                    key={opt.key}
-                    href={sortHref(opt.key)}
-                    className={`px-5 py-3 font-mono text-xs tracking-wide transition-colors inline-flex items-center gap-1 ${
-                      isActive
-                        ? "bg-white/[0.06] t-card-title"
-                        : "t-meta hover:t-body"
-                    }`}
-                  >
-                    {opt.label}
-                    <span className={`text-[7px] leading-none ${isActive ? "t-meta" : "opacity-0"}`}>
-                      {isActive ? (order === "asc" ? "▲" : "▼") : "▼"}
-                    </span>
-                  </a>
-                );
-              })}
+          {/* Sort tabs */}
+          <div className="flex items-center border-b border-white/[0.06] overflow-x-auto">
+            {sortTabs.map((opt) => {
+              const isActive = sort === opt.key;
+              return (
+                <a
+                  key={opt.key}
+                  href={sortHref(opt.key)}
+                  className={`px-5 py-3 font-mono text-xs tracking-wide transition-colors inline-flex items-center gap-1 whitespace-nowrap shrink-0 ${
+                    isActive
+                      ? "bg-white/[0.06] t-card-title"
+                      : "t-meta hover:t-body"
+                  }`}
+                >
+                  {opt.label}
+                  <span className={`text-[7px] leading-none ${isActive ? "t-meta" : "opacity-0"}`}>
+                    {isActive ? (order === "asc" ? "▲" : "▼") : "▼"}
+                  </span>
+                </a>
+              );
+            })}
+          </div>
 
-              {/* Spacer */}
-              <div className="flex-1" />
-
-              {/* Filters */}
-              <div className="flex flex-wrap items-center gap-2 pr-4">
-                <FilterSelect
-                  label="Kind"
-                  value={kind}
-                  options={filterOptions.kinds}
-                  buildHref={(v) => filterHref("kind", v)}
-                />
-                <FilterSelect
-                  label="Category"
-                  value={category}
-                  options={filterOptions.categories}
-                  buildHref={(v) => filterHref("category", v)}
-                />
-                <FilterSelect
-                  label="License"
-                  value={license}
-                  options={filterOptions.licenses}
-                  buildHref={(v) => filterHref("license", v)}
-                />
-                <FilterSelect
-                  label="Language"
-                  value={language}
-                  options={filterOptions.languages}
-                  buildHref={(v) => filterHref("language", v)}
-                  displayFn={formatLanguage}
-                />
-                {(kind || category || license || language) && (
-                  <a
-                    href={`/packages?${q ? `q=${encodeURIComponent(q)}&` : ""}sort=${sort}&order=${order}`}
-                    className="font-mono text-[10px] text-accent hover:underline"
-                  >
-                    Clear
-                  </a>
-                )}
-              </div>
-            </div>
+          {/* Filters */}
+          <div className="flex flex-wrap items-center gap-2 px-4 py-2.5 border-b border-white/[0.06]">
+            <FilterSelect
+              label="Kind"
+              value={kind}
+              options={filterOptions.kinds}
+              buildHref={(v) => filterHref("kind", v)}
+            />
+            <FilterSelect
+              label="Category"
+              value={category}
+              options={filterOptions.categories}
+              buildHref={(v) => filterHref("category", v)}
+            />
+            <FilterSelect
+              label="License"
+              value={license}
+              options={filterOptions.licenses}
+              buildHref={(v) => filterHref("license", v)}
+            />
+            <FilterSelect
+              label="Language"
+              value={language}
+              options={filterOptions.languages}
+              buildHref={(v) => filterHref("language", v)}
+              displayFn={formatLanguage}
+            />
+            {(kind || category || license || language) && (
+              <a
+                href={`/packages?${q ? `q=${encodeURIComponent(q)}&` : ""}sort=${sort}&order=${order}`}
+                className="font-mono text-[10px] text-accent hover:underline shrink-0"
+              >
+                Clear
+              </a>
+            )}
+          </div>
 
           <Suspense
             fallback={
