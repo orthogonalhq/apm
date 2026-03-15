@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { db, schema } from "@/lib/db";
 import { sql } from "drizzle-orm";
 
+const ftsExpr = sql`to_tsvector('english', ${schema.packages.scope} || ' ' || ${schema.packages.name} || ' ' || ${schema.packages.description})`;
+
 export async function GET(request: NextRequest) {
   const q = request.nextUrl.searchParams.get("q");
 
@@ -15,8 +17,11 @@ export async function GET(request: NextRequest) {
     .map((word) => `${word}:*`)
     .join(" & ");
 
+  const rankExpr = sql<number>`ts_rank(${ftsExpr}, to_tsquery('english', ${tsQuery}))`;
+
   const results = await db
     .select({
+      scope: schema.packages.scope,
       name: schema.packages.name,
       description: schema.packages.description,
       kind: schema.packages.kind,
@@ -33,15 +38,13 @@ export async function GET(request: NextRequest) {
       verified: schema.packages.verified,
       status: schema.packages.status,
       lastIndexedAt: schema.packages.lastIndexedAt,
-      rank: sql<number>`ts_rank(to_tsvector('english', ${schema.packages.name} || ' ' || ${schema.packages.description}), to_tsquery('english', ${tsQuery}))`,
+      rank: rankExpr,
     })
     .from(schema.packages)
     .where(
-      sql`to_tsvector('english', ${schema.packages.name} || ' ' || ${schema.packages.description}) @@ to_tsquery('english', ${tsQuery})`
+      sql`${ftsExpr} @@ to_tsquery('english', ${tsQuery})`
     )
-    .orderBy(
-      sql`ts_rank(to_tsvector('english', ${schema.packages.name} || ' ' || ${schema.packages.description}), to_tsquery('english', ${tsQuery})) DESC`
-    )
+    .orderBy(sql`${rankExpr} DESC`)
     .limit(50);
 
   return NextResponse.json({

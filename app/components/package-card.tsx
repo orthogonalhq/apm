@@ -11,15 +11,16 @@ const kindColors: Record<string, string> = {
 export function PackageCard({ pkg }: { pkg: PackageListItem }) {
   return (
     <Link
-      href={`/packages/${pkg.name}`}
+      href={`/packages/@${pkg.scope}/${pkg.name}`}
       className="block px-6 md:px-10 py-5 border-b border-white/[0.06] hover:bg-white/[0.02] transition-all duration-200 group"
     >
       {/* Row 1: name + right-side meta */}
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <h3 className="font-mono text-sm font-semibold t-card-title group-hover:text-accent transition-colors truncate">
-              {pkg.name}
+            <h3 className="font-mono text-sm font-semibold group-hover:text-accent transition-colors truncate">
+              <span className="t-meta">@{pkg.scope}/</span>
+              <span className="t-card-title">{pkg.name}</span>
             </h3>
             {pkg.verified && (
               <span className="text-accent text-[10px]" title="Verified">

@@ -5,6 +5,24 @@ import Link from "next/link";
 import { PanelBar } from "@/components/panel-bar";
 import { InstallTabs } from "@/components/install-tabs";
 import { EcosystemGrid } from "@/components/ecosystem-grid";
+import type { Metadata } from "next";
+
+const BASE_URL = process.env.VERCEL_URL
+  ? `https://${process.env.VERCEL_URL}`
+  : "https://apm.sh";
+
+export const metadata: Metadata = {
+  title: "APM — Discover Agent Skills for AI Agents",
+  description:
+    "The open registry for agent skills. Discover and install production-ready skills, workflows, and apps for 34+ AI agent products.",
+  openGraph: {
+    title: "APM — Discover Agent Skills for AI Agents",
+    description:
+      "The open registry for agent skills. Discover and install production-ready skills, workflows, and apps for 34+ AI agent products.",
+    url: BASE_URL,
+    type: "website",
+  },
+};
 
 async function getStats() {
     try {
@@ -21,6 +39,7 @@ async function getFeaturedPackages() {
     try {
         return await db
             .select({
+                scope: schema.packages.scope,
                 name: schema.packages.name,
                 description: schema.packages.description,
                 kind: schema.packages.kind,
@@ -51,8 +70,30 @@ export default async function HomePage() {
         getFeaturedPackages(),
     ]);
 
+    const jsonLd = {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "@id": `${BASE_URL}/#website`,
+        url: BASE_URL,
+        name: "APM",
+        description:
+            "The open registry for agent skills. Discover and install production-ready skills, workflows, and apps for 34+ AI agent products.",
+        potentialAction: {
+            "@type": "SearchAction",
+            target: {
+                "@type": "EntryPoint",
+                urlTemplate: `${BASE_URL}/packages?q={search_term_string}`,
+            },
+            "query-input": "required name=search_term_string",
+        },
+    };
+
     return (
         <div>
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+            />
             {/* Hero */}
             <section className="relative px-6 md:px-12 lg:px-20 py-20 md:py-28 text-center">
                 <div className="mx-auto max-w-5xl animate-fade-in-up">
@@ -209,15 +250,15 @@ export default async function HomePage() {
                             <div className="divide-y divide-white/[0.06]">
                                 {featured.map((pkg) => (
                                     <Link
-                                        key={pkg.name}
-                                        href={`/packages/${pkg.name}`}
+                                        key={`${pkg.scope}/${pkg.name}`}
+                                        href={`/packages/@${pkg.scope}/${pkg.name}`}
                                         className="block px-6 md:px-10 py-4 hover:bg-white/[0.02] transition-colors group"
                                     >
                                         <div className="flex items-start justify-between gap-4">
                                             <div className="min-w-0">
                                                 <div className="flex items-center gap-2">
                                                     <span className="font-mono text-sm t-card-title group-hover:text-accent transition-colors">
-                                                        {pkg.name}
+                                                        <span className="t-meta">@{pkg.scope}/</span>{pkg.name}
                                                     </span>
                                                     {pkg.verified && (
                                                         <span className="text-accent text-[10px]">

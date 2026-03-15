@@ -1,13 +1,18 @@
 import { notFound } from "next/navigation";
 import { db, schema } from "@/lib/db";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { codeToHtml } from "shiki";
 import { CopyButton } from "@/components/copy-button";
 import { PanelBar } from "@/components/panel-bar";
 import { SkillActions } from "@/components/skill-actions";
+import { formatPackageId } from "@apm/types";
 import type { Metadata } from "next";
 
 export const revalidate = 3600;
+
+const BASE_URL = process.env.VERCEL_URL
+  ? `https://${process.env.VERCEL_URL}`
+  : "https://apm.sh";
 
 const kindColors: Record<string, string> = {
   skill: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
@@ -16,20 +21,36 @@ const kindColors: Record<string, string> = {
   app: "bg-purple-500/10 text-purple-400 border-purple-500/20",
 };
 
+function parseSlug(slug: string[]): { scope: string; name: string } | null {
+  if (slug.length < 2) return null;
+  let scope = decodeURIComponent(slug[0]);
+  if (scope.startsWith("@")) scope = scope.slice(1);
+  if (!scope || !slug[1]) return null;
+  return { scope, name: decodeURIComponent(slug[1]) };
+}
+
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<{ name: string }>;
+  params: Promise<{ slug: string[] }>;
 }): Promise<Metadata> {
-  const { name } = await params;
+  const { slug } = await params;
+  const parsed = parseSlug(slug);
+  if (!parsed) return { title: "Skill not found" };
 
   const result = await db
     .select({
+      scope: schema.packages.scope,
       name: schema.packages.name,
       description: schema.packages.description,
     })
     .from(schema.packages)
-    .where(eq(schema.packages.name, name))
+    .where(
+      and(
+        eq(schema.packages.scope, parsed.scope),
+        eq(schema.packages.name, parsed.name)
+      )
+    )
     .limit(1);
 
   if (result.length === 0) {
@@ -37,12 +58,13 @@ export async function generateMetadata({
   }
 
   const pkg = result[0];
+  const fullName = formatPackageId(pkg.scope, pkg.name);
   const desc = `${pkg.description} — an agent skill installable across 34+ AI agent products.`;
   return {
-    title: `${pkg.name} — Agent Skill`,
+    title: `${fullName} — Agent Skill`,
     description: desc,
     openGraph: {
-      title: `${pkg.name} — Agent Skill — APM`,
+      title: `${fullName} — Agent Skill — APM`,
       description: desc,
     },
   };
@@ -88,26 +110,11 @@ function formatType(kind: string | null): string | null {
 }
 
 const languageNames: Record<string, string> = {
-  en: "English",
-  zh: "Chinese",
-  ja: "Japanese",
-  ko: "Korean",
-  es: "Spanish",
-  fr: "French",
-  de: "German",
-  pt: "Portuguese",
-  ru: "Russian",
-  ar: "Arabic",
-  hi: "Hindi",
-  it: "Italian",
-  nl: "Dutch",
-  pl: "Polish",
-  tr: "Turkish",
-  vi: "Vietnamese",
-  th: "Thai",
-  uk: "Ukrainian",
-  sv: "Swedish",
-  cs: "Czech",
+  en: "English", zh: "Chinese", ja: "Japanese", ko: "Korean",
+  es: "Spanish", fr: "French", de: "German", pt: "Portuguese",
+  ru: "Russian", ar: "Arabic", hi: "Hindi", it: "Italian",
+  nl: "Dutch", pl: "Polish", tr: "Turkish", vi: "Vietnamese",
+  th: "Thai", uk: "Ukrainian", sv: "Swedish", cs: "Czech",
 };
 
 function formatLanguage(code: string): string {
@@ -131,14 +138,21 @@ async function SkillMdHighlight({ content }: { content: string }) {
 export default async function PackagePage({
   params,
 }: {
-  params: Promise<{ name: string }>;
+  params: Promise<{ slug: string[] }>;
 }) {
-  const { name } = await params;
+  const { slug } = await params;
+  const parsed = parseSlug(slug);
+  if (!parsed) notFound();
 
   const result = await db
     .select()
     .from(schema.packages)
-    .where(eq(schema.packages.name, name))
+    .where(
+      and(
+        eq(schema.packages.scope, parsed.scope),
+        eq(schema.packages.name, parsed.name)
+      )
+    )
     .limit(1);
 
   if (result.length === 0) {
@@ -146,21 +160,56 @@ export default async function PackagePage({
   }
 
   const pkg = result[0];
-  const installCmd = `apm install ${pkg.name}`;
+  const fullName = formatPackageId(pkg.scope, pkg.name);
+  const installCmd = `apm install ${fullName}`;
+  const pageUrl = `${BASE_URL}/packages/@${pkg.scope}/${pkg.name}`;
+  const repoUrl = pkg.repoUrl ?? `https://github.com/${pkg.sourceRepo}`;
 
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": "SoftwareSourceCode",
-    name: pkg.name,
-    description: pkg.description,
-    codeRepository: pkg.repoUrl ?? `https://github.com/${pkg.sourceRepo}`,
-    programmingLanguage: "Markdown",
-    license: pkg.license
-      ? `https://spdx.org/licenses/${pkg.license}.html`
-      : undefined,
-  };
+  const jsonLd = [
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareSourceCode",
+      "@id": pageUrl,
+      url: pageUrl,
+      name: fullName,
+      description: pkg.description,
+      codeRepository: repoUrl,
+      programmingLanguage: "Markdown",
+      ...(pkg.license && pkg.license !== "NOASSERTION"
+        ? { license: `https://spdx.org/licenses/${pkg.license}.html` }
+        : {}),
+      ...(pkg.version ? { version: pkg.version } : {}),
+      ...(pkg.repoOwner
+        ? {
+            author: {
+              "@type": "Organization",
+              name: pkg.repoOwner,
+              url: `https://github.com/${pkg.repoOwner}`,
+            },
+          }
+        : {}),
+      ...((pkg.tags ?? []).length > 0 ? { keywords: (pkg.tags ?? []).join(", ") } : {}),
+      ...(pkg.lastUpdatedAt
+        ? { dateModified: pkg.lastUpdatedAt.toISOString() }
+        : {}),
+      isPartOf: {
+        "@type": "WebSite",
+        "@id": `${BASE_URL}/#website`,
+        name: "APM",
+        url: BASE_URL,
+      },
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      itemListElement: [
+        { "@type": "ListItem", position: 1, name: "Home", item: BASE_URL },
+        { "@type": "ListItem", position: 2, name: "Packages", item: `${BASE_URL}/packages` },
+        { "@type": "ListItem", position: 3, name: fullName, item: pageUrl },
+      ],
+    },
+  ];
 
-  // Sidebar spec sheet — grouped sections
   const specSections = [
     {
       label: "Source",
@@ -168,7 +217,7 @@ export default async function PackagePage({
         {
           label: "Repository",
           value: pkg.sourceRepo,
-          href: pkg.repoUrl ?? `https://github.com/${pkg.sourceRepo}`,
+          href: repoUrl,
         },
         {
           label: "Path",
@@ -184,6 +233,11 @@ export default async function PackagePage({
     {
       label: "Ownership",
       items: [
+        {
+          label: "Scope",
+          value: `@${pkg.scope}`,
+          href: `/packages?q=${encodeURIComponent(`@${pkg.scope}`)}`,
+        },
         {
           label: "Owner",
           value: pkg.repoOwner,
@@ -233,13 +287,12 @@ export default async function PackagePage({
           {/* Header */}
           <div className="mb-8">
             <p className="font-mono text-[10px] uppercase tracking-[0.2em] t-meta mb-2">
-              <span className="bg-accent text-black font-normal px-0.5">
-                &gt;
-              </span>
+              <span className="bg-accent text-black font-normal px-0.5">&gt;</span>
               <span className="ml-1.5">Agent Skill</span>
             </p>
             <div className="flex items-center gap-3 flex-wrap">
               <h1 className="font-mono text-2xl md:text-3xl font-semibold tracking-[-0.02em] t-heading">
+                <span className="t-meta">@{pkg.scope}/</span>
                 {pkg.name}
               </h1>
               <span
@@ -258,16 +311,13 @@ export default async function PackagePage({
                 </span>
               )}
               {pkg.category && (
-                <span className="font-mono text-[10px] t-meta">
-                  {pkg.category}
-                </span>
+                <span className="font-mono text-[10px] t-meta">{pkg.category}</span>
               )}
             </div>
             <p className="mt-2 text-sm t-card-desc leading-relaxed max-w-2xl">
               {pkg.description}
             </p>
 
-            {/* Tags */}
             {(pkg.tags ?? []).length > 0 && (
               <div className="mt-3 flex flex-wrap gap-1.5">
                 {(pkg.tags ?? []).map((tag) => (
@@ -281,7 +331,6 @@ export default async function PackagePage({
               </div>
             )}
 
-            {/* Compatibility */}
             {(pkg.compatibility ?? []).length > 0 && (
               <div className="mt-2 flex flex-wrap gap-1.5">
                 {(pkg.compatibility ?? []).map((agent) => (
@@ -297,16 +346,13 @@ export default async function PackagePage({
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Main content */}
             <div className="lg:col-span-2 space-y-6">
               {/* Install */}
               <div className="border-y border-white/[0.06]">
                 <PanelBar label="apm::install" />
                 <div className="px-6 md:px-10 py-5">
                   <div className="flex items-center gap-3 bg-white/[0.04] border border-white/[0.08] px-4 py-3 rounded-[3px]">
-                    <span className="font-mono text-xs t-meta select-none">
-                      $
-                    </span>
+                    <span className="font-mono text-xs t-meta select-none">$</span>
                     <code className="font-mono text-sm t-card-title flex-1 overflow-x-auto whitespace-nowrap">
                       {installCmd}
                     </code>
@@ -315,7 +361,6 @@ export default async function PackagePage({
                 </div>
               </div>
 
-              {/* Allowed tools */}
               {(pkg.allowedTools ?? []).length > 0 && (
                 <div className="border-y border-white/[0.06]">
                   <PanelBar label="apm::allowed-tools" />
@@ -332,25 +377,21 @@ export default async function PackagePage({
                 </div>
               )}
 
-              {/* SKILL.md content */}
               <div className="border-y border-white/[0.06]">
                 <PanelBar label="apm::skill.md" meta="raw">
-                  <SkillActions content={pkg.skillMdRaw} packageName={pkg.name} />
+                  <SkillActions content={pkg.skillMdRaw} packageName={fullName} />
                 </PanelBar>
                 <SkillMdHighlight content={pkg.skillMdRaw} />
               </div>
             </div>
 
-            {/* Sidebar — spec sheet */}
             <aside className="space-y-0">
               {specSections.map((section) => (
                 <div
                   key={section.label}
                   className="border-y border-white/[0.06] -mt-px first:mt-0"
                 >
-                  <PanelBar
-                    label={`apm::${section.label.toLowerCase()}`}
-                  />
+                  <PanelBar label={`apm::${section.label.toLowerCase()}`} />
                   <div className="divide-y divide-white/[0.06]">
                     {section.items.map((item) => (
                       <div

@@ -10,6 +10,7 @@ import {
 } from "react";
 
 interface SearchResult {
+  scope: string;
   name: string;
   description: string;
   kind: string;
@@ -103,9 +104,9 @@ export function SearchModal({
   }, [query]);
 
   const navigate = useCallback(
-    (name: string) => {
+    (scope: string, name: string) => {
       onClose();
-      router.push(`/packages/${name}`);
+      router.push(`/packages/@${scope}/${name}`);
     },
     [onClose, router]
   );
@@ -120,7 +121,7 @@ export function SearchModal({
         setSelected((s) => Math.max(s - 1, 0));
       } else if (e.key === "Enter") {
         if (results[selected]) {
-          navigate(results[selected].name);
+          navigate(results[selected].scope, results[selected].name);
         } else if (query.trim()) {
           onClose();
           router.push(`/packages?q=${encodeURIComponent(query.trim())}`);
@@ -192,8 +193,8 @@ export function SearchModal({
               <div className="py-2">
                 {results.map((result, i) => (
                   <button
-                    key={result.name}
-                    onClick={() => navigate(result.name)}
+                    key={`${result.scope}/${result.name}`}
+                    onClick={() => navigate(result.scope, result.name)}
                     className={`w-full text-left px-4 py-2.5 flex items-start gap-3 transition-colors ${
                       i === selected
                         ? "bg-white/[0.06]"
@@ -205,8 +206,9 @@ export function SearchModal({
                     </span>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
-                        <span className="font-mono text-sm t-card-title truncate">
-                          {result.name}
+                        <span className="font-mono text-sm truncate">
+                          <span className="t-meta">@{result.scope}/</span>
+                          <span className="t-card-title">{result.name}</span>
                         </span>
                         {result.verified && (
                           <span className="text-accent text-[10px]" title="Verified">

@@ -7,6 +7,10 @@ import { PanelBar } from "@/components/panel-bar";
 import type { Metadata } from "next";
 import type { PackageKind } from "@apm/types";
 
+const BASE_URL = process.env.VERCEL_URL
+  ? `https://${process.env.VERCEL_URL}`
+  : "https://apm.sh";
+
 export async function generateMetadata({
   searchParams,
 }: {
@@ -43,6 +47,7 @@ export async function generateMetadata({
 }
 
 const listSelect = {
+  scope: schema.packages.scope,
   name: schema.packages.name,
   description: schema.packages.description,
   kind: schema.packages.kind,
@@ -108,6 +113,7 @@ function buildSortHref(
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function toPackageListItem(pkg: any) {
   return {
+    scope: pkg.scope as string,
     name: pkg.name as string,
     description: pkg.description as string,
     kind: (pkg.kind ?? "skill") as PackageKind,
@@ -446,7 +452,66 @@ export default async function PackagesPage({
     { key: "tokens", label: "Tokens" },
   ];
 
+  // JSON-LD: CollectionPage + ItemList for top packages
+  const topForLd = await db
+    .select({ name: schema.packages.name, description: schema.packages.description })
+    .from(schema.packages)
+    .orderBy(desc(schema.packages.repoStars))
+    .limit(10);
+
+  const jsonLd = [
+    {
+      "@context": "https://schema.org",
+      "@type": "CollectionPage",
+      "@id": `${BASE_URL}/packages`,
+      url: `${BASE_URL}/packages`,
+      name: q ? `Agent skills for ${q}` : "Agent Skills — APM",
+      description:
+        "Browse and search the APM registry — discover agent skills, workflows, and apps for AI agents.",
+      isPartOf: {
+        "@type": "WebSite",
+        "@id": `${BASE_URL}/#website`,
+        name: "APM",
+        url: BASE_URL,
+      },
+      mainEntity: {
+        "@type": "ItemList",
+        numberOfItems: topForLd.length,
+        itemListElement: topForLd.map((pkg, i) => ({
+          "@type": "ListItem",
+          position: i + 1,
+          url: `${BASE_URL}/packages/${pkg.name}`,
+          name: pkg.name,
+          description: pkg.description,
+        })),
+      },
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      itemListElement: [
+        {
+          "@type": "ListItem",
+          position: 1,
+          name: "Home",
+          item: BASE_URL,
+        },
+        {
+          "@type": "ListItem",
+          position: 2,
+          name: "Packages",
+          item: `${BASE_URL}/packages`,
+        },
+      ],
+    },
+  ];
+
   return (
+    <>
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+    />
     <div className="px-6 md:px-12 lg:px-20 py-10 md:py-16">
       <div className="mx-auto max-w-5xl">
         <div className="border-y border-white/[0.06]">
@@ -535,6 +600,7 @@ export default async function PackagesPage({
         </div>
       </div>
     </div>
+    </>
   );
 }
 

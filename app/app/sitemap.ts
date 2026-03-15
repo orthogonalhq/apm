@@ -7,13 +7,14 @@ const BASE_URL = process.env.VERCEL_URL
 export default async function sitemap() {
   const packages = await db
     .select({
+      scope: schema.packages.scope,
       name: schema.packages.name,
       lastIndexedAt: schema.packages.lastIndexedAt,
     })
     .from(schema.packages);
 
   const packageUrls = packages.map((pkg) => ({
-    url: `${BASE_URL}/packages/${pkg.name}`,
+    url: `${BASE_URL}/packages/@${pkg.scope}/${pkg.name}`,
     lastModified: pkg.lastIndexedAt,
     changeFrequency: "daily" as const,
     priority: 0.8,

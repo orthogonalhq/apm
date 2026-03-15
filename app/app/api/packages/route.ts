@@ -24,8 +24,10 @@ export async function GET(request: NextRequest) {
   const [results, countResult] = await Promise.all([
     db
       .select({
+        scope: schema.packages.scope,
         name: schema.packages.name,
         description: schema.packages.description,
+        kind: schema.packages.kind,
         sourceRepo: schema.packages.sourceRepo,
         repoOwner: schema.packages.repoOwner,
         repoStars: schema.packages.repoStars,
