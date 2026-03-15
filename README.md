@@ -2,34 +2,34 @@
 
 The package manager and public registry for [agent skills](https://agentskills.io/specification), from [Orthogonal](https://orthogonal.dev).
 
-Think "npm for AI agent skills." APM lets you discover, install, and share SKILL.md packages across 30+ agent products — Claude Code, Cursor, Gemini CLI, VS Code Copilot, and more.
+Think "npm for AI agent skills." APM lets you discover, install, and share SKILL.md packages across 34+ agent products — Claude Code, Cursor, Gemini CLI, VS Code Copilot, and more.
 
 **Registry:** [apm.orthg.nl](https://apm.orthg.nl)
 
 ## Install
 
-### Shell (macOS / Linux)
+### macOS / Linux
 
 ```bash
 curl -fsSL https://apm.orthg.nl/install.sh | sh
 ```
 
-### npm
+### Winget (Windows)
 
-```bash
-npm install -g @apm-cli/apm
+```powershell
+winget install Orthogonal.APM
 ```
 
-### Homebrew
+### Homebrew (macOS)
 
 ```bash
 brew install orthogonalhq/apm/apm
 ```
 
-### Cargo
+### npm (all platforms)
 
 ```bash
-cargo install apm
+npm install -g @apm-cli/apm
 ```
 
 ### Manual download
@@ -145,24 +145,22 @@ cd cli && cargo build
 
 Copy `app/.env.example` to `app/.env.local` and fill in the values:
 
-- `POSTGRES_URL` — Vercel Postgres / Neon connection string
+- `REGISTRY_POSTGRES_URL` — Neon / Vercel Postgres connection string
 - `GITHUB_TOKEN` — GitHub PAT for code search API
 - `CRON_SECRET` — Secret for authenticating cron triggers
 
 ### Releasing
 
-Releases are tag-triggered. Push a version tag to build and publish everywhere:
+Releases happen automatically when CLI changes merge to `main`. The workflow:
 
-```bash
-git tag v0.1.0
-git push origin v0.1.0
-```
+1. Reads the version from `cli/Cargo.toml`
+2. Checks if a `v{version}` tag already exists — if so, skips
+3. Builds binaries for all 6 platform targets
+4. Creates the git tag and GitHub Release with archives + checksums
+5. Publishes all npm packages with provenance
+6. Updates the Homebrew formula
 
-This will:
-1. Build binaries for all 6 platform targets
-2. Create a GitHub Release with archives + checksums
-3. Publish all npm packages with provenance
-4. Update the Homebrew formula
+**To release a new version:** bump the `version` in `cli/Cargo.toml`, merge to main, and the pipeline handles the rest.
 
 ## License
 
