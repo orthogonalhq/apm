@@ -1,0 +1,106 @@
+#!/usr/bin/env node
+
+"use strict";
+
+const { execFileSync } = require("child_process");
+const { join, dirname } = require("path");
+const { existsSync } = require("fs");
+
+// Map Node.js platform/arch to our npm package names
+const PLATFORM_MAP = {
+  "darwin-arm64": "@apm-cli/darwin-arm64",
+  "darwin-x64": "@apm-cli/darwin-x64",
+  "linux-arm64": "@apm-cli/linux-arm64",
+  "linux-x64": "@apm-cli/linux-x64",
+  "win32-x64": "@apm-cli/win32-x64-msvc",
+};
+
+// On Linux x64, check for musl vs glibc
+function getLinuxLibc() {
+  try {
+    const lddOutput = execFileSync("ldd", ["--version"], {
+      encoding: "utf8",
+      stdio: ["pipe", "pipe", "pipe"],
+    });
+    if (lddOutput.toLowerCase().includes("musl")) {
+      return "musl";
+    }
+  } catch {
+    // ldd --version exits non-zero on musl systems and prints to stderr
+    try {
+      const result = require("child_process").spawnSync("ldd", ["--version"], {
+        encoding: "utf8",
+      });
+      const output = (result.stdout || "") + (result.stderr || "");
+      if (output.toLowerCase().includes("musl")) {
+        return "musl";
+      }
+    } catch {
+      // Fall through to glibc default
+    }
+  }
+  return "glibc";
+}
+
+function getBinaryPath() {
+  const platform = process.platform;
+  const arch = process.arch;
+  let key = `${platform}-${arch}`;
+
+  // Check for musl on Linux x64
+  if (platform === "linux" && arch === "x64" && getLinuxLibc() === "musl") {
+    key = "linux-x64-musl";
+  }
+
+  // Try the platform-specific package first
+  const packageName = key === "linux-x64-musl" ? "@apm-cli/linux-x64-musl" : PLATFORM_MAP[key];
+
+  if (!packageName) {
+    console.error(
+      `Error: Unsupported platform ${platform}-${arch}.\n` +
+        `APM supports: ${Object.keys(PLATFORM_MAP).join(", ")}, linux-x64-musl`
+    );
+    process.exit(1);
+  }
+
+  // Resolve the binary from the platform package
+  const binName = platform === "win32" ? "apm.exe" : "apm";
+
+  try {
+    const pkgPath = require.resolve(`${packageName}/package.json`);
+    const binPath = join(dirname(pkgPath), "bin", binName);
+    if (existsSync(binPath)) {
+      return binPath;
+    }
+  } catch {
+    // Package not installed
+  }
+
+  console.error(
+    `Error: Could not find the APM binary for your platform (${key}).\n` +
+      `Expected package: ${packageName}\n\n` +
+      `Try reinstalling with:\n` +
+      `  npm install -g @apm-cli/apm\n`
+  );
+  process.exit(1);
+}
+
+const binPath = getBinaryPath();
+const args = process.argv.slice(2);
+
+try {
+  const result = require("child_process").spawnSync(binPath, args, {
+    stdio: "inherit",
+    windowsHide: false,
+  });
+
+  if (result.error) {
+    throw result.error;
+  }
+
+  process.exit(result.status ?? 1);
+} catch (err) {
+  console.error(`Error: Failed to execute APM binary at ${binPath}`);
+  console.error(err.message);
+  process.exit(1);
+}
