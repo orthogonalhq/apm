@@ -1,0 +1,62 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg: #0a0a0a;
+  --color-surface: #141414;
+  --color-card-border: #222222;
+  --color-accent: #FA5D2B;
+  --color-accent-glow: #FA8E2E;
+  --color-fg: #ffffff;
+  --font-sans: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-ibm-plex-mono), ui-monospace, monospace;
+}
+
+body {
+  background-color: #0a0a0a;
+  color: rgba(255, 255, 255, 0.80);
+}
+
+/* Scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+}
+*::-webkit-scrollbar { width: 4px; height: 4px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 4px; }
+*::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.2); }
+
+/* Selection */
+::selection {
+  background: #c23e0af9;
+  color: #000;
+}
+
+/* ── Typography hierarchy ── */
+@layer components {
+  .t-heading     { color: rgb(255 255 255 / 0.95); }
+  .t-card-title  { color: rgb(255 255 255 / 1.00); }
+  .t-body        { color: rgb(255 255 255 / 0.78); }
+  .t-card-desc   { color: rgb(255 255 255 / 0.72); }
+  .t-panel-label { color: rgb(255 255 255 / 0.65); }
+  .t-nav         { color: rgb(255 255 255 / 0.55); }
+  .t-meta        { color: rgb(255 255 255 / 0.45); }
+  .t-ghost       { color: rgb(255 255 255 / 0.30); }
+}
+
+/* ── Accent ── */
+.accent-gradient-text {
+  background: linear-gradient(135deg, #FA8E2E, #FA5D2B);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ── Animations ── */
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in-up {
+  animation: fade-in-up 0.7s ease-out both;
+}

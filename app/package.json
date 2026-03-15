@@ -1,0 +1,41 @@
+{
+  "name": "@apm/app",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^0.10",
+    "@apm/types": "workspace:*",
+    "drizzle-orm": "^0.38",
+    "geist": "^1.7.0",
+    "gray-matter": "^4",
+    "next": "^15",
+    "react": "^19",
+    "react-dom": "^19",
+    "react-markdown": "^9",
+    "rehype-raw": "^7",
+    "rehype-sanitize": "^6",
+    "remark-gfm": "^4"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@tailwindcss/typography": "^0.5",
+    "@types/node": "^22",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "drizzle-kit": "^0.30",
+    "eslint": "^9",
+    "eslint-config-next": "^15",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}
