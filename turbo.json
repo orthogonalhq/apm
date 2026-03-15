@@ -7,7 +7,12 @@
     },
     "build": {
       "dependsOn": ["^build"],
-      "outputs": [".next/**", "!.next/cache/**", "dist/**"]
+      "outputs": [".next/**", "!.next/cache/**", "dist/**"],
+      "env": [
+        "REGISTRY_POSTGRES_URL",
+        "GITHUB_TOKEN",
+        "CRON_SECRET"
+      ]
     },
     "lint": {
       "dependsOn": ["^build"]
