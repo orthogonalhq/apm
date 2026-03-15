@@ -5,10 +5,10 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: {
-    default: "OPM Docs",
-    template: "%s — OPM Docs",
+    default: "APM Docs",
+    template: "%s — APM Docs",
   },
-  description: "Developer documentation for the Orthogonal Package Manager",
+  description: "Developer documentation for the Agent Package Manager",
 };
 
 export default function Layout({ children }: { children: ReactNode }) {
