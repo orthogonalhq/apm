@@ -28,8 +28,8 @@ Composite skills fit into a three-layer architecture:
 
 ```
 Workflow graph node (e.g., "code review step")
-  → loads composite skill (e.g., "code-review")
-    → loads atomic skills (e.g., "variable-scoping", "testing-patterns")
+  → loads composite skill (e.g., "@anthropics/code-review")
+    → loads atomic skills (e.g., "@anthropics/variable-scoping", "@anthropics/testing-patterns")
 ```
 
 | Layer | Role | Example |
@@ -53,13 +53,13 @@ description: >
   code changes, pull requests, or conducting quality assessments.
 dependencies:
   skills:
-    - name: variable-scoping
+    - name: "@anthropics/variable-scoping"
       version: "^1.0"
-    - name: testing-patterns
+    - name: "@anthropics/testing-patterns"
       version: "^1.0"
-    - name: error-handling
+    - name: "@anthropics/error-handling"
       version: "^1.0"
-    - name: architecture-reasoning
+    - name: "@anthropics/architecture-reasoning"
       version: "^2.0"
 metadata:
   version: "1.0.0"
@@ -73,7 +73,7 @@ A list of constituent skill dependencies. Each entry has:
 
 | Field | Required | Description |
 |-------|----------|-------------|
-| `name` | Yes | The skill package name |
+| `name` | Yes | The scoped package name (`@scope/name`) |
 | `version` | No | Semver range (defaults to `"*"`) |
 
 ### `metadata.nous.skill-tier`
@@ -88,17 +88,17 @@ Composite skill dependencies use the same resolution engine as all APM packages 
 
 - **Recursive resolution.** Installing a composite skill installs all constituent skills, including transitive dependencies.
 - **DAG enforcement.** The dependency graph must be a directed acyclic graph. Circular dependencies are rejected at install time.
-- **Deduplication.** If two composite skills both depend on `testing-patterns`, it is installed once in `.skills/`.
+- **Deduplication.** If two composite skills both depend on `@anthropics/testing-patterns`, it is installed once in `.skills/`.
 - **Version conflict handling.** If two composites require incompatible versions of the same atomic skill, install fails with a clear error (pnpm-style strict resolution).
 
 ```bash
-apm install code-review
+apm install @anthropics/code-review
 # Resolves and installs:
-#   .skills/code-review/SKILL.md         (composite)
-#   .skills/variable-scoping/SKILL.md    (atomic)
-#   .skills/testing-patterns/SKILL.md    (atomic)
-#   .skills/error-handling/SKILL.md      (atomic)
-#   .skills/architecture-reasoning/SKILL.md (atomic)
+#   .skills/@anthropics/code-review/SKILL.md              (composite)
+#   .skills/@anthropics/variable-scoping/SKILL.md          (atomic)
+#   .skills/@anthropics/testing-patterns/SKILL.md          (atomic)
+#   .skills/@anthropics/error-handling/SKILL.md             (atomic)
+#   .skills/@anthropics/architecture-reasoning/SKILL.md     (atomic)
 ```
 
 ## Progressive disclosure
@@ -111,7 +111,7 @@ Loading all constituent skills at once would be wasteful. A composite skill with
 | **Activation** | Skill is relevant to current task | < 5,000 tokens | Composite SKILL.md body — the orchestration logic |
 | **Constituent loading** | Specific judgment needed | On demand | Individual atomic skill bodies, per the composite's guidance |
 
-The composite skill body acts as a **router**. It tells the runtime which constituents to load based on the current context. A code review composite might load `variable-scoping` for a frontend file but `architecture-reasoning` for an infrastructure change.
+The composite skill body acts as a **router**. It tells the runtime which constituents to load based on the current context. A code review composite might load `@anthropics/variable-scoping` for a frontend file but `@anthropics/architecture-reasoning` for an infrastructure change.
 
 ## Directory structure
 
@@ -125,7 +125,7 @@ code-review/
 └── assets/           # Optional: static resources
 ```
 
-**Composite skills do not contain their constituent skills.** They reference them by name. Constituents are independently installed packages in `.skills/` — peers, not children.
+**Composite skills do not contain their constituent skills.** They reference them by scoped name. Constituents are independently installed packages in `.skills/` — peers, not children.
 
 ## Graceful degradation
 
@@ -151,13 +151,13 @@ description: >
   code changes, pull requests, or conducting quality assessments.
 dependencies:
   skills:
-    - name: variable-scoping
+    - name: "@anthropics/variable-scoping"
       version: "^1.0"
-    - name: testing-patterns
+    - name: "@anthropics/testing-patterns"
       version: "^1.0"
-    - name: error-handling
+    - name: "@anthropics/error-handling"
       version: "^1.0"
-    - name: architecture-reasoning
+    - name: "@anthropics/architecture-reasoning"
       version: "^2.0"
 metadata:
   version: "1.0.0"
@@ -171,19 +171,19 @@ When reviewing code, apply the following judgment framework:
 ### For all code changes
 
 Load and apply:
-- **variable-scoping** — check scope hygiene, unused declarations, mutation patterns
-- **error-handling** — verify error propagation, user-facing messages, logging
+- **@anthropics/variable-scoping** — check scope hygiene, unused declarations, mutation patterns
+- **@anthropics/error-handling** — verify error propagation, user-facing messages, logging
 
 ### For backend and infrastructure changes
 
 Additionally load:
-- **architecture-reasoning** — evaluate system boundaries, coupling, data flow
-- **testing-patterns** — verify test coverage, edge cases, integration points
+- **@anthropics/architecture-reasoning** — evaluate system boundaries, coupling, data flow
+- **@anthropics/testing-patterns** — verify test coverage, edge cases, integration points
 
 ### For frontend changes
 
 Additionally load:
-- **testing-patterns** — focus on component testing, interaction flows, accessibility
+- **@anthropics/testing-patterns** — focus on component testing, interaction flows, accessibility
 
 ### Judgment weighting
 

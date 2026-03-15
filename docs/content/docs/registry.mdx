@@ -10,7 +10,16 @@ The APM registry serves as the central discovery and distribution hub for agent 
 - **Proxied tier** — APM indexes public GitHub repos containing valid SKILL.md files. Skills are discoverable and installable immediately, with no action required from authors.
 - **Hosted tier** — Authors publish directly to APM via `apm publish`. Packages are hosted by the registry for faster installs, versioned snapshots, and guaranteed availability.
 
-Both tiers are searchable on [apm.sh](https://apm.sh) and installable via `apm install`.
+Both tiers are searchable on [apm.orthg.nl](https://apm.orthg.nl) and installable via `apm install @scope/name`.
+
+## Scoped names
+
+All packages use scoped names in the format `@scope/name`:
+
+- **Proxied packages** — the scope is derived from the GitHub repo owner. A skill at `github.com/anthropics/skills/code-review` becomes `@anthropics/code-review`.
+- **Hosted packages** — authors claim their scope during publishing.
+
+Scopes prevent naming collisions. Multiple authors can publish a `code-review` skill without conflict — `@anthropics/code-review` and `@myorg/code-review` coexist.
 
 ## Proxied tier (live today)
 
@@ -23,7 +32,8 @@ The proxied tier solves the cold-start problem. Instead of launching with an emp
 3. APM fetches repository metadata (stars, license, default branch)
 4. APM fetches the `SKILL.md` content and validates it against the [specification](/docs/what-is-skill-md)
 5. Only skills with valid frontmatter (`name` and `description`) are indexed
-6. Valid skills are upserted into the registry database
+6. The scope is set to the lowercase GitHub repo owner
+7. Valid skills are upserted into the registry database
 
 ### What gets indexed
 
@@ -44,7 +54,7 @@ A skill is indexed if **all** of the following are true:
 
 ### Proxied install flow
 
-When you `apm install` a proxied package, the CLI fetches the skill content from the registry (which mirrors it from the source repository). The registry stores the full `SKILL.md` content, so installs don't hit GitHub directly.
+When you `apm install @scope/name`, the CLI fetches the skill content from the registry (which mirrors it from the source repository). The registry stores the full `SKILL.md` content, so installs don't hit GitHub directly.
 
 ## Hosted tier (coming soon)
 
@@ -63,13 +73,13 @@ Hosted packages get:
 
 ### Migration path
 
-Proxied packages naturally migrate to hosted as authors claim their namespace and publish directly. There's no disruption — the package name stays the same, and existing `apm install` commands continue to work.
+Proxied packages naturally migrate to hosted as authors claim their scope and publish directly. There's no disruption — the scoped name stays the same, and existing `apm install` commands continue to work.
 
 ## Search
 
-The registry provides full-text search powered by PostgreSQL. Search covers package names and descriptions.
+The registry provides full-text search powered by PostgreSQL. Search covers scopes, package names, and descriptions.
 
-**On the web:** Use the search bar at [apm.sh](https://apm.sh)
+**On the web:** Use the search bar at [apm.orthg.nl](https://apm.orthg.nl)
 
 **From the CLI:**
 
@@ -80,7 +90,7 @@ apm search "code review"
 **From the API:**
 
 ```bash
-curl "https://apm.sh/api/search?q=code+review"
+curl "https://apm.orthg.nl/api/search?q=code+review"
 ```
 
 ## The public indexing model

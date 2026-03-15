@@ -7,26 +7,34 @@ description: Install the APM CLI and start using agent skills in minutes
 
 APM (Agent Package Manager) is the package manager and public registry for agent skills. It connects skill authors to the 34+ AI agent products that support the [agentskills.io](https://agentskills.io) open standard — including Claude Code, Cursor, GitHub Copilot, Gemini CLI, Windsurf, and more.
 
-Discover skills on the [registry](https://apm.sh), install them with one command, and your agent picks them up automatically.
+All packages use scoped names (`@scope/name`) to avoid collisions and provide clear provenance. The scope is derived from the GitHub repo owner for indexed packages.
+
+Discover skills on the [registry](https://apm.orthg.nl), install them with one command, and your agent picks them up automatically.
 
 ## Install the CLI
 
 ### npm
 
 ```bash
-npm install -g apm
+npm install -g @orthogonal/apm
 ```
 
-### Cargo (from source)
+### Homebrew (macOS)
 
 ```bash
-cargo install apm
+brew install orthogonal/tap/apm
+```
+
+### Linux
+
+```bash
+curl -fsSL https://apm.sh/install | sh
 ```
 
 ### From source
 
 ```bash
-git clone https://github.com/orthogonal-dev/apm.git
+git clone https://github.com/orthogonalhq/apm.git
 cd apm/cli
 cargo build --release
 ```
@@ -42,7 +50,7 @@ apm search "code review"
 Install it:
 
 ```bash
-apm install code-review
+apm install @anthropics/code-review
 ```
 
 APM fetches the skill from the registry and writes it to your project:
@@ -50,8 +58,9 @@ APM fetches the skill from the registry and writes it to your project:
 ```
 your-project/
 ├── .skills/
-│   └── code-review/
-│       └── SKILL.md
+│   └── @anthropics/
+│       └── code-review/
+│           └── SKILL.md
 └── apm-lock.json
 ```
 
@@ -59,8 +68,8 @@ Your agent automatically detects installed skills in `.skills/` and loads them w
 
 ## How it works
 
-1. **Discover** — browse [apm.sh](https://apm.sh) or use `apm search`
-2. **Install** — `apm install <name>` fetches the skill and writes it to `.skills/`
+1. **Discover** — browse [apm.orthg.nl](https://apm.orthg.nl) or use `apm search`
+2. **Install** — `apm install @scope/name` fetches the skill and writes it to `.skills/`
 3. **Use** — your agent loads installed skills automatically
 
 APM manages the lockfile (`apm-lock.json`) to track installed packages, their source repositories, and git refs.

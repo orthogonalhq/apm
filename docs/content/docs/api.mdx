@@ -6,10 +6,18 @@ description: APM registry API endpoints for packages, search, and skill content
 ## Base URL
 
 ```
-https://apm.sh
+https://apm.orthg.nl
 ```
 
-All endpoints return JSON.
+All endpoints return JSON unless otherwise noted.
+
+## Package naming
+
+All packages use scoped names: `@scope/name`. API paths use the scoped format directly:
+
+```
+/api/packages/@scope/name
+```
 
 ## Endpoints
 
@@ -32,10 +40,12 @@ List packages with pagination and sorting.
 {
   "data": [
     {
+      "scope": "anthropics",
       "name": "code-review",
       "description": "Systematic code review checklist",
-      "sourceRepo": "user/code-review-skill",
-      "repoOwner": "user",
+      "kind": "skill",
+      "sourceRepo": "anthropics/skills",
+      "repoOwner": "anthropics",
       "repoStars": 87,
       "license": "MIT",
       "lastIndexedAt": "2026-03-14T00:00:00.000Z"
@@ -49,7 +59,7 @@ List packages with pagination and sorting.
 
 ---
 
-### `GET /api/packages/:name`
+### `GET /api/packages/@:scope/:name`
 
 Get full details for a single package.
 
@@ -58,12 +68,14 @@ Get full details for a single package.
 ```json
 {
   "id": "uuid",
+  "scope": "anthropics",
   "name": "code-review",
   "description": "Systematic code review checklist",
-  "sourceRepo": "user/code-review-skill",
+  "kind": "skill",
+  "sourceRepo": "anthropics/skills",
   "sourcePath": "code-review",
   "sourceRef": "main",
-  "repoOwner": "user",
+  "repoOwner": "anthropics",
   "repoStars": 87,
   "license": "MIT",
   "skillMdRaw": "---\nname: code-review\n...",
@@ -79,19 +91,20 @@ Get full details for a single package.
 
 | Status | Body |
 |--------|------|
+| `400` | `{ "error": "Invalid package path. Use @scope/name" }` |
 | `404` | `{ "error": "Package not found" }` |
 
 ---
 
-### `GET /api/packages/:name/skill-md`
+### `GET /api/packages/@:scope/:name/skill-md`
 
 Get the raw SKILL.md content for a package.
 
-**Response:** Plain text SKILL.md content.
+**Response:** Plain text SKILL.md content (`Content-Type: text/markdown`).
 
 ---
 
-### `GET /api/packages/:name/source`
+### `GET /api/packages/@:scope/:name/source`
 
 Redirects to the source repository on GitHub.
 
@@ -101,7 +114,7 @@ Redirects to the source repository on GitHub.
 
 ### `GET /api/search?q=...`
 
-Full-text search across package names and descriptions.
+Full-text search across scopes, package names, and descriptions.
 
 **Query parameters:**
 
@@ -115,10 +128,12 @@ Full-text search across package names and descriptions.
 {
   "results": [
     {
+      "scope": "anthropics",
       "name": "code-review",
       "description": "Systematic code review checklist",
-      "sourceRepo": "user/code-review-skill",
-      "repoOwner": "user",
+      "kind": "skill",
+      "sourceRepo": "anthropics/skills",
+      "repoOwner": "anthropics",
       "repoStars": 87,
       "license": "MIT",
       "lastIndexedAt": "2026-03-14T00:00:00.000Z"
@@ -134,7 +149,7 @@ Search uses PostgreSQL full-text search with English tokenization. Queries are s
 
 ---
 
-### `POST /api/packages/:name/track`
+### `POST /api/packages/@:scope/:name/track`
 
 Track a download/install event for a package. Increments the package's download count.
 
@@ -170,8 +185,8 @@ The APM CLI uses this API under the hood:
 
 | CLI command | API call |
 |-------------|----------|
-| `apm install <name>` | `GET /api/packages/<name>` then `POST /api/packages/<name>/track` |
+| `apm install @scope/name` | `GET /api/packages/@scope/name` then `POST /api/packages/@scope/name/track` |
 | `apm search <query>` | `GET /api/search?q=<query>` |
-| `apm info <name>` | `GET /api/packages/<name>` |
+| `apm info @scope/name` | `GET /api/packages/@scope/name` |
 
 You can override the registry URL with `--registry` or the `APM_REGISTRY` environment variable.
