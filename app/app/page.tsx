@@ -2,7 +2,6 @@ import { db, schema } from "@/lib/db";
 import { desc } from "drizzle-orm";
 import { sql } from "drizzle-orm";
 import Link from "next/link";
-import { SearchBar } from "@/components/search-bar";
 import { PanelBar } from "@/components/panel-bar";
 import { InstallTabs } from "@/components/install-tabs";
 
@@ -89,10 +88,6 @@ export default async function HomePage() {
               </span>
             )}
           </p>
-
-          <div className="mt-8 max-w-lg mx-auto">
-            <SearchBar />
-          </div>
         </div>
       </section>
 
