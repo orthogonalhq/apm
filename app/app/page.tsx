@@ -121,13 +121,21 @@ export default async function HomePage() {
                                     title: "Apps",
                                     desc: "Full agent applications with runtime, tools, and MCP server integrations.",
                                 },
-                            ].map((type, i) => (
+                            ].map((type, i) => {
+                                // Mobile: bottom border on 0,1,2
+                                // Tablet 2-col: right border on 0,2 (left col); bottom border on 0,1 (top row)
+                                // Desktop 4-col: right border on 0,1,2; no bottom borders
+                                const borders = [
+                                    i < 3 ? "border-b border-white/[0.06]" : "",
+                                    i % 2 === 0 ? "sm:border-r sm:border-white/[0.06]" : "",
+                                    i >= 2 ? "sm:border-b-0" : "",
+                                    i < 3 ? "lg:border-r lg:border-white/[0.06]" : "",
+                                    "lg:border-b-0",
+                                ].filter(Boolean).join(" ");
+                                return (
                                 <div
                                     key={type.kind}
-                                    className={`px-6 md:px-8 py-6 md:py-8 ${i < 3
-                                            ? "border-b border-white/[0.06] lg:border-b-0 lg:border-r"
-                                            : ""
-                                        } ${i === 1 ? "sm:border-r" : ""}`}
+                                    className={`px-6 md:px-8 py-6 md:py-8 ${borders}`}
                                 >
                                     <span
                                         className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-mono uppercase tracking-wider border mb-3 ${kindColors[type.kind]}`}
@@ -141,7 +149,8 @@ export default async function HomePage() {
                                         {type.desc}
                                     </p>
                                 </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     </div>
                 </div>
