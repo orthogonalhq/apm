@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 description = "Agent Package Manager — a package manager for agent skills"
 license = "MIT"
-repository = "https://github.com/orthogonal-dev/apm"
+repository = "https://github.com/orthogonalhq/apm"
 readme = "../README.md"
 
 [dependencies]

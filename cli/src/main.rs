@@ -9,7 +9,7 @@ use clap::{Parser, Subcommand};
 #[command(name = "apm", version, about = "Agent Package Manager — a package manager for agent skills")]
 struct Cli {
     /// APM registry URL
-    #[arg(long, env = "APM_REGISTRY", default_value = "https://apm.sh")]
+    #[arg(long, env = "APM_REGISTRY", default_value = "https://apm.orthg.nl")]
     registry: String,
 
     #[command(subcommand)]
