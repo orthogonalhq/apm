@@ -110,7 +110,6 @@ function buildSortHref(
   return `/packages?${params.toString()}`;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function toPackageListItem(pkg: any) {
   return {
     scope: pkg.scope as string,
@@ -169,7 +168,7 @@ async function getFilterOptions() {
 }
 
 function buildPageHref(
-  baseParams: { q?: string; sort: string; order: string; kind?: string; category?: string; license?: string; language?: string },
+  baseParams: { q?: string; sort: string; order: string; kind?: string; category?: string; license?: string; language?: string; verified?: string },
   targetPage: number,
 ): string {
   const p = new URLSearchParams();
@@ -180,6 +179,7 @@ function buildPageHref(
   if (baseParams.category) p.set("category", baseParams.category);
   if (baseParams.license) p.set("license", baseParams.license);
   if (baseParams.language) p.set("language", baseParams.language);
+  if (baseParams.verified) p.set("verified", baseParams.verified);
   if (targetPage > 1) p.set("page", String(targetPage));
   return `/packages?${p.toString()}`;
 }
@@ -264,6 +264,7 @@ async function PackageResults({
   category,
   license,
   language,
+  verified,
 }: {
   q?: string;
   sort: SortKey;
@@ -273,9 +274,10 @@ async function PackageResults({
   category?: string;
   license?: string;
   language?: string;
+  verified?: string;
 }) {
   const pageSize = 20;
-  const baseParams = { q, sort, order, kind, category, license, language };
+  const baseParams = { q, sort, order, kind, category, license, language, verified };
 
   // Build filter conditions
   const filters = [];
@@ -283,16 +285,21 @@ async function PackageResults({
   if (category) filters.push(eq(schema.packages.category, category));
   if (license) filters.push(eq(schema.packages.license, license));
   if (language) filters.push(eq(schema.packages.language, language));
+  if (verified === "true") filters.push(eq(schema.packages.verified, true));
   const where = filters.length > 0 ? and(...filters) : undefined;
 
   if (q && q.trim().length > 0) {
-    const tsQuery = q
-      .trim()
+    // Strip @ and clean for tsquery
+    const cleaned = q.trim().replace(/@/g, "");
+    const tsQuery = cleaned
       .split(/\s+/)
+      .filter(Boolean)
       .map((word) => `${word}:*`)
       .join(" & ");
 
-    const tsWhere = sql`to_tsvector('english', ${schema.packages.name} || ' ' || ${schema.packages.description}) @@ to_tsquery('english', ${tsQuery})`;
+    const ftsVec = sql`to_tsvector('english', ${schema.packages.scope} || ' ' || ${schema.packages.name} || ' ' || ${schema.packages.description})`;
+    const ftsQuery = sql`to_tsquery('english', ${tsQuery})`;
+    const tsWhere = sql`${ftsVec} @@ ${ftsQuery}`;
     const combinedWhere = where ? and(where, tsWhere) : tsWhere;
 
     const [results, [{ count: total }]] = await Promise.all([
@@ -300,9 +307,7 @@ async function PackageResults({
         .select(listSelect)
         .from(schema.packages)
         .where(combinedWhere)
-        .orderBy(
-          sql`ts_rank(to_tsvector('english', ${schema.packages.name} || ' ' || ${schema.packages.description}), to_tsquery('english', ${tsQuery})) DESC`
-        )
+        .orderBy(sql`ts_rank(${ftsVec}, ${ftsQuery}) DESC`)
         .limit(pageSize)
         .offset((page - 1) * pageSize),
       db
@@ -398,6 +403,7 @@ export default async function PackagesPage({
     category?: string;
     license?: string;
     language?: string;
+    verified?: string;
   }>;
 }) {
   const params = await searchParams;
@@ -409,6 +415,7 @@ export default async function PackagesPage({
   const category = params.category;
   const license = params.license;
   const language = params.language;
+  const verified = params.verified;
 
   const filterOptions = await getFilterOptions();
 
@@ -419,6 +426,7 @@ export default async function PackagesPage({
   if (category) filterParams.set("category", category);
   if (license) filterParams.set("license", license);
   if (language) filterParams.set("language", language);
+  if (verified) filterParams.set("verified", verified);
   const filterQS = filterParams.toString();
 
   function sortHref(targetSort: SortKey): string {
@@ -435,6 +443,7 @@ export default async function PackagesPage({
     if (category) p.set("category", category);
     if (license) p.set("license", license);
     if (language) p.set("language", language);
+    if (verified) p.set("verified", verified);
 
     if (value) {
       p.set(key, value);
@@ -454,7 +463,7 @@ export default async function PackagesPage({
 
   // JSON-LD: CollectionPage + ItemList for top packages
   const topForLd = await db
-    .select({ name: schema.packages.name, description: schema.packages.description })
+    .select({ scope: schema.packages.scope, name: schema.packages.name, description: schema.packages.description })
     .from(schema.packages)
     .orderBy(desc(schema.packages.repoStars))
     .limit(10);
@@ -480,8 +489,8 @@ export default async function PackagesPage({
         itemListElement: topForLd.map((pkg, i) => ({
           "@type": "ListItem",
           position: i + 1,
-          url: `${BASE_URL}/packages/${pkg.name}`,
-          name: pkg.name,
+          url: `${BASE_URL}/packages/@${pkg.scope}/${pkg.name}`,
+          name: `@${pkg.scope}/${pkg.name}`,
           description: pkg.description,
         })),
       },
@@ -569,7 +578,17 @@ export default async function PackagesPage({
               buildHref={(v) => filterHref("language", v)}
               displayFn={formatLanguage}
             />
-            {(kind || category || license || language) && (
+            <a
+              href={filterHref("verified", verified === "true" ? undefined : "true")}
+              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded text-[11px] font-mono border transition-colors shrink-0 ${
+                verified === "true"
+                  ? "bg-accent/10 border-accent/20 text-accent hover:bg-accent/20"
+                  : "bg-white/[0.04] border-white/[0.06] t-meta hover:bg-white/[0.06]"
+              }`}
+            >
+              Verified
+            </a>
+            {(kind || category || license || language || verified) && (
               <a
                 href={`/packages?${q ? `q=${encodeURIComponent(q)}&` : ""}sort=${sort}&order=${order}`}
                 className="font-mono text-[10px] text-accent hover:underline shrink-0"
@@ -595,6 +614,7 @@ export default async function PackagesPage({
               category={category}
               license={license}
               language={language}
+              verified={verified}
             />
           </Suspense>
         </div>

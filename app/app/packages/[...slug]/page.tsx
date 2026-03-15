@@ -1,11 +1,16 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
+import { Suspense } from "react";
 import { db, schema } from "@/lib/db";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql, asc, desc } from "drizzle-orm";
 import { codeToHtml } from "shiki";
 import { CopyButton } from "@/components/copy-button";
 import { PanelBar } from "@/components/panel-bar";
+import { PackageCard } from "@/components/package-card";
 import { SkillActions } from "@/components/skill-actions";
+import { VerifiedBadge } from "@/components/verified-badge";
 import { formatPackageId } from "@apm/types";
+import type { PackageKind } from "@apm/types";
 import type { Metadata } from "next";
 
 export const revalidate = 3600;
@@ -21,12 +26,17 @@ const kindColors: Record<string, string> = {
   app: "bg-purple-500/10 text-purple-400 border-purple-500/20",
 };
 
-function parseSlug(slug: string[]): { scope: string; name: string } | null {
-  if (slug.length < 2) return null;
+type SlugParsed =
+  | { type: "scope"; scope: string }
+  | { type: "package"; scope: string; name: string };
+
+function parseSlug(slug: string[]): SlugParsed | null {
+  if (slug.length === 0) return null;
   let scope = decodeURIComponent(slug[0]);
   if (scope.startsWith("@")) scope = scope.slice(1);
-  if (!scope || !slug[1]) return null;
-  return { scope, name: decodeURIComponent(slug[1]) };
+  if (!scope) return null;
+  if (slug.length === 1) return { type: "scope", scope };
+  return { type: "package", scope, name: decodeURIComponent(slug[1]) };
 }
 
 export async function generateMetadata({
@@ -36,7 +46,26 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   const parsed = parseSlug(slug);
-  if (!parsed) return { title: "Skill not found" };
+  if (!parsed) return { title: "Not found" };
+
+  if (parsed.type === "scope") {
+    const [countResult] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(schema.packages)
+      .where(eq(schema.packages.scope, parsed.scope));
+
+    const total = Number(countResult.count);
+    if (total === 0) return { title: "Scope not found" };
+
+    return {
+      title: `@${parsed.scope} — Agent Skills`,
+      description: `Browse ${total} agent skill${total === 1 ? "" : "s"} published by @${parsed.scope} on APM.`,
+      openGraph: {
+        title: `@${parsed.scope} — Agent Skills — APM`,
+        description: `Browse ${total} agent skill${total === 1 ? "" : "s"} published by @${parsed.scope}.`,
+      },
+    };
+  }
 
   const result = await db
     .select({
@@ -59,13 +88,13 @@ export async function generateMetadata({
 
   const pkg = result[0];
   const fullName = formatPackageId(pkg.scope, pkg.name);
-  const desc = `${pkg.description} — an agent skill installable across 34+ AI agent products.`;
+  const descText = `${pkg.description} — an agent skill installable across 34+ AI agent products.`;
   return {
     title: `${fullName} — Agent Skill`,
-    description: desc,
+    description: descText,
     openGraph: {
       title: `${fullName} — Agent Skill — APM`,
-      description: desc,
+      description: descText,
     },
   };
 }
@@ -143,6 +172,10 @@ export default async function PackagePage({
   const { slug } = await params;
   const parsed = parseSlug(slug);
   if (!parsed) notFound();
+
+  if (parsed.type === "scope") {
+    return <ScopePage scope={parsed.scope} />;
+  }
 
   const result = await db
     .select()
@@ -236,7 +269,7 @@ export default async function PackagePage({
         {
           label: "Scope",
           value: `@${pkg.scope}`,
-          href: `/packages?q=${encodeURIComponent(`@${pkg.scope}`)}`,
+          href: `/packages/@${pkg.scope}`,
         },
         {
           label: "Owner",
@@ -300,11 +333,7 @@ export default async function PackagePage({
               >
                 {pkg.kind ?? "skill"}
               </span>
-              {pkg.verified && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono uppercase tracking-wider border border-accent/30 bg-accent/10 text-accent">
-                  verified
-                </span>
-              )}
+              {pkg.verified && <VerifiedBadge />}
               {pkg.featured && (
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono uppercase tracking-wider border border-amber-500/30 bg-amber-500/10 text-amber-400">
                   featured
@@ -425,5 +454,156 @@ export default async function PackagePage({
         </div>
       </div>
     </>
+  );
+}
+
+// ── Scope page ──────────────────────────────────────────────
+
+const scopeListSelect = {
+  scope: schema.packages.scope,
+  name: schema.packages.name,
+  description: schema.packages.description,
+  kind: schema.packages.kind,
+  category: schema.packages.category,
+  tags: schema.packages.tags,
+  compatibility: schema.packages.compatibility,
+  language: schema.packages.language,
+  sourceRepo: schema.packages.sourceRepo,
+  repoOwner: schema.packages.repoOwner,
+  author: schema.packages.author,
+  repoStars: schema.packages.repoStars,
+  license: schema.packages.license,
+  tokenCount: schema.packages.tokenCount,
+  downloadCount: schema.packages.downloadCount,
+  verified: schema.packages.verified,
+  status: schema.packages.status,
+  lastIndexedAt: schema.packages.lastIndexedAt,
+};
+
+function toListItem(pkg: any) {
+  return {
+    scope: pkg.scope as string,
+    name: pkg.name as string,
+    description: pkg.description as string,
+    kind: (pkg.kind ?? "skill") as PackageKind,
+    category: pkg.category as string | null,
+    tags: (pkg.tags as string[]) ?? [],
+    compatibility: (pkg.compatibility as string[]) ?? [],
+    language: (pkg.language as string) ?? "en",
+    sourceRepo: pkg.sourceRepo as string,
+    repoOwner: pkg.repoOwner as string,
+    author: pkg.author as string | null,
+    repoStars: (pkg.repoStars as number) ?? 0,
+    license: pkg.license as string | null,
+    tokenCount: (pkg.tokenCount as number) ?? 0,
+    downloadCount: (pkg.downloadCount as number) ?? 0,
+    verified: (pkg.verified as boolean) ?? false,
+    status: (pkg.status ?? "active") as "active" | "deprecated" | "archived",
+    lastIndexedAt: (pkg.lastIndexedAt as Date).toISOString(),
+  };
+}
+
+async function ScopePage({ scope }: { scope: string }) {
+  const [packages, [{ count: totalCount }], [{ stars: totalStars }]] =
+    await Promise.all([
+      db
+        .select(scopeListSelect)
+        .from(schema.packages)
+        .where(eq(schema.packages.scope, scope))
+        .orderBy(desc(schema.packages.repoStars)),
+      db
+        .select({ count: sql<number>`count(*)` })
+        .from(schema.packages)
+        .where(eq(schema.packages.scope, scope)),
+      db
+        .select({
+          stars: sql<number>`coalesce(max(${schema.packages.repoStars}), 0)`,
+        })
+        .from(schema.packages)
+        .where(eq(schema.packages.scope, scope)),
+    ]);
+
+  if (packages.length === 0) {
+    notFound();
+  }
+
+  const total = Number(totalCount);
+  const maxStars = Number(totalStars);
+  const firstPkg = packages[0];
+  const githubUrl = `https://github.com/${firstPkg.repoOwner}`;
+
+  const kinds = [...new Set(packages.map((p) => p.kind))];
+  const categories = [
+    ...new Set(packages.map((p) => p.category).filter(Boolean)),
+  ] as string[];
+
+  return (
+    <div className="px-6 md:px-12 lg:px-20 py-10 md:py-16">
+      <div className="mx-auto max-w-5xl">
+        {/* Header */}
+        <div className="mb-8">
+          <p className="font-mono text-[10px] uppercase tracking-[0.2em] t-meta mb-2">
+            <span className="bg-accent text-black font-normal px-0.5">
+              &gt;
+            </span>
+            <span className="ml-1.5">Scope</span>
+          </p>
+          <div className="flex items-center gap-3 flex-wrap">
+            <h1 className="font-mono text-2xl md:text-3xl font-semibold tracking-[-0.02em] t-heading">
+              @{scope}
+            </h1>
+            <a
+              href={githubUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] font-mono bg-white/[0.04] border border-white/[0.06] t-meta hover:text-accent hover:border-white/[0.12] transition-colors"
+            >
+              <svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
+              </svg>
+              {firstPkg.repoOwner}
+            </a>
+          </div>
+
+          {/* Stats row */}
+          <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] font-mono t-meta">
+            <span>
+              {total} skill{total === 1 ? "" : "s"}
+            </span>
+            {maxStars > 0 && (
+              <>
+                <span className="t-ghost">·</span>
+                <span>★ {maxStars.toLocaleString()}</span>
+              </>
+            )}
+            {kinds.length > 0 && (
+              <>
+                <span className="t-ghost">·</span>
+                <span>{kinds.join(", ")}</span>
+              </>
+            )}
+            {categories.length > 0 && (
+              <>
+                <span className="t-ghost">·</span>
+                <span>{categories.join(", ")}</span>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Skills list */}
+        <div className="border-y border-white/[0.06]">
+          <PanelBar
+            label={`apm::@${scope}`}
+            meta={`${total} skill${total === 1 ? "" : "s"}`}
+          />
+          <div>
+            {packages.map((pkg) => (
+              <PackageCard key={`${pkg.scope}/${pkg.name}`} pkg={toListItem(pkg)} />
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
