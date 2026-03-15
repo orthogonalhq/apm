@@ -13,8 +13,8 @@
     "db:migrate": "drizzle-kit migrate"
   },
   "dependencies": {
-    "@neondatabase/serverless": "^0.10",
     "@apm/types": "workspace:*",
+    "@neondatabase/serverless": "^0.10",
     "drizzle-orm": "^0.38",
     "geist": "^1.7.0",
     "gray-matter": "^4",
@@ -32,6 +32,7 @@
     "@types/node": "^22",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "dotenv": "^17.3.1",
     "drizzle-kit": "^0.30",
     "eslint": "^9",
     "eslint-config-next": "^15",
