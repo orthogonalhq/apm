@@ -10,13 +10,15 @@ There are two ways to get a skill into the APM registry:
 1. **Automatic indexing** (available now) — push a valid SKILL.md to a public GitHub repo and APM indexes it automatically
 2. **Direct publishing** (coming soon) — publish directly via `apm publish` for faster installs, version control, and namespace ownership
 
+All packages use scoped names (`@scope/name`). For indexed packages, the scope is derived from the GitHub repo owner.
+
 ## Get indexed automatically
 
 The simplest path. No account, no CLI, no publishing step.
 
 ### 1. Create a public GitHub repository
 
-Your skill can live in its own repo or in a subdirectory of an existing repo. APM indexes both.
+Your skill can live in its own repo or in a subdirectory of an existing repo. APM indexes both. Your GitHub username or org name becomes the scope — e.g., a skill in `github.com/myorg/skills/code-review` becomes `@myorg/code-review`.
 
 ### 2. Add a valid SKILL.md
 
@@ -50,7 +52,7 @@ apm validate ./my-skill
 
 ### 4. Push and wait
 
-Push to GitHub. The APM indexer runs daily and picks up new skills automatically. Your skill will appear on [apm.sh](https://apm.sh) and be installable via `apm install my-skill`.
+Push to GitHub. The APM indexer runs daily and picks up new skills automatically. Your skill will appear on [apm.orthg.nl](https://apm.orthg.nl) and be installable via `apm install @yourname/my-skill`.
 
 ## Direct publishing (coming soon)
 
@@ -59,7 +61,7 @@ Direct publishing will offer:
 - **`apm publish`** — publish from the CLI with one command
 - **GitHub Actions** — `orthogonal/apm-publish@v1` for CI/CD integration
 - **Version history** — publish multiple versions, consumers can pin
-- **Namespace ownership** — claim your package name (first-come-first-serve, npm model)
+- **Namespace ownership** — claim your scope (first-come-first-serve, npm model)
 - **Faster installs** — packages served directly from the registry
 
 ### Publish flow (future)
@@ -82,10 +84,12 @@ Direct publishing will use GitHub-based authentication (OAuth). Publishers authe
 
 Private packages will be available on a paid tier:
 
-- Scoped to an organization (`@org/package-name`)
+- Scoped to an organization (e.g., `@mycompany/internal-guidelines`)
 - Access controlled by org membership
 - Same publish/install flow as public packages
 - Not publicly visible or searchable
+
+All packages — public and private — use scoped names. Scoping is universal, not limited to private packages.
 
 ## Opting out
 

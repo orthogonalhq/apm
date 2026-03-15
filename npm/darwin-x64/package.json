@@ -1,0 +1,13 @@
+{
+  "name": "@apm-cli/darwin-x64",
+  "version": "0.0.0",
+  "description": "APM CLI binary for macOS x64 (Intel)",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/orthogonalhq/apm"
+  },
+  "os": ["darwin"],
+  "cpu": ["x64"],
+  "preferUnplugged": true
+}

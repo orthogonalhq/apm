@@ -13,7 +13,9 @@ export async function GET(request: NextRequest) {
 
   const tsQuery = q
     .trim()
+    .replace(/@/g, "")
     .split(/\s+/)
+    .filter(Boolean)
     .map((word) => `${word}:*`)
     .join(" & ");
 

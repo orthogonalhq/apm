@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { VerifiedBadge } from "./verified-badge";
 import {
   useState,
   useEffect,
@@ -210,11 +211,7 @@ export function SearchModal({
                           <span className="t-meta">@{result.scope}/</span>
                           <span className="t-card-title">{result.name}</span>
                         </span>
-                        {result.verified && (
-                          <span className="text-accent text-[10px]" title="Verified">
-                            &#x2713;
-                          </span>
-                        )}
+                        {result.verified && <VerifiedBadge />}
                       </div>
                       <span className="block text-xs t-card-desc mt-0.5 line-clamp-1">
                         {result.description}

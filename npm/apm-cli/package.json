@@ -1,0 +1,25 @@
+{
+  "name": "@apm-cli/apm",
+  "version": "0.0.0",
+  "description": "Agent Package Manager — a package manager for agent skills",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/orthogonalhq/apm"
+  },
+  "homepage": "https://apm.orthg.nl",
+  "bin": {
+    "apm": "bin/apm"
+  },
+  "optionalDependencies": {
+    "@apm-cli/linux-x64": "0.0.0",
+    "@apm-cli/linux-arm64": "0.0.0",
+    "@apm-cli/linux-x64-musl": "0.0.0",
+    "@apm-cli/darwin-x64": "0.0.0",
+    "@apm-cli/darwin-arm64": "0.0.0",
+    "@apm-cli/win32-x64-msvc": "0.0.0"
+  },
+  "engines": {
+    "node": ">=16"
+  }
+}

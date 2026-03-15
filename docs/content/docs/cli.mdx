@@ -7,22 +7,32 @@ description: Complete reference for all APM CLI commands and options
 
 | Option | Env variable | Default | Description |
 |--------|-------------|---------|-------------|
-| `--registry <url>` | `APM_REGISTRY` | `https://apm.sh` | APM registry URL |
+| `--registry <url>` | `APM_REGISTRY` | `https://apm.orthg.nl` | APM registry URL |
 | `--version` | | | Print version |
 | `--help` | | | Print help |
 
+## Package names
+
+All packages use scoped names in the format `@scope/name`. The scope is typically the GitHub owner or organization:
+
+```
+@anthropics/code-review
+@user/my-skill
+@myorg/internal-guidelines
+```
+
 ## `apm install`
 
-Install a skill by name from the registry.
+Install a skill by scoped name from the registry.
 
 ```bash
-apm install <name>
+apm install @scope/name
 ```
 
 **What it does:**
 
-1. Fetches package metadata from the registry (`/api/packages/<name>`)
-2. Creates `.skills/<name>/` in your project root
+1. Fetches package metadata from the registry (`/api/packages/@scope/name`)
+2. Creates `.skills/@scope/name/` in your project root
 3. Writes the `SKILL.md` file
 4. Updates `apm-lock.json` with the package source, path, ref, and commit SHA
 
@@ -31,9 +41,9 @@ apm install <name>
 **Example:**
 
 ```bash
-$ apm install code-review
-apm Fetching code-review...
-apm Installed code-review to .skills/code-review
+$ apm install @anthropics/code-review
+apm Fetching @anthropics/code-review...
+apm Installed @anthropics/code-review to .skills/@anthropics/code-review
 ```
 
 **Result:**
@@ -41,8 +51,9 @@ apm Installed code-review to .skills/code-review
 ```
 your-project/
 ├── .skills/
-│   └── code-review/
-│       └── SKILL.md
+│   └── @anthropics/
+│       └── code-review/
+│           └── SKILL.md
 └── apm-lock.json
 ```
 
@@ -54,7 +65,7 @@ Search for skills in the registry.
 apm search <query>
 ```
 
-Searches the registry using full-text search. Results show the skill name, metadata (stars, license), description, and source repository.
+Searches the registry using full-text search over scopes, names, and descriptions. Results show the scoped name, metadata (stars, license), description, and source repository.
 
 **Example:**
 
@@ -62,11 +73,11 @@ Searches the registry using full-text search. Results show the skill name, metad
 $ apm search "error handling"
 Found 3 skill(s) matching 'error handling':
 
-  error-handling (★ 42 · MIT)
+  @user/error-handling (★ 42 · MIT)
   Best practices for error handling across languages
   user/error-handling-skill
 
-  resilient-apis (★ 18 · Apache-2.0)
+  @org/resilient-apis (★ 18 · Apache-2.0)
   Building resilient API error responses
   org/resilient-apis
 ```
@@ -76,7 +87,7 @@ Found 3 skill(s) matching 'error handling':
 Show details about a skill.
 
 ```bash
-apm info <name>
+apm info @scope/name
 ```
 
 Fetches and displays package metadata from the registry.
@@ -84,18 +95,19 @@ Fetches and displays package metadata from the registry.
 **Example:**
 
 ```bash
-$ apm info code-review
+$ apm info @anthropics/code-review
 
-  code-review  Systematic code review checklist
+  @anthropics/code-review  Systematic code review checklist
 
-  repo:  user/code-review-skill
+  scope: @anthropics
+  repo:  anthropics/skills
   path:  code-review
   ref:   main
-  owner: user
+  owner: anthropics
   stars: 87
 
   Install:
-  apm install code-review
+  apm install @anthropics/code-review
 ```
 
 ## `apm validate`
@@ -140,14 +152,14 @@ $ apm validate ./bad-skill
 
 ## Lockfile
 
-APM maintains an `apm-lock.json` file at your project root. It tracks installed packages:
+APM maintains an `apm-lock.json` file at your project root. It tracks installed packages by their scoped name:
 
 ```json
 {
   "lockfileVersion": 1,
   "packages": {
-    "code-review": {
-      "sourceRepo": "user/code-review-skill",
+    "@anthropics/code-review": {
+      "sourceRepo": "anthropics/skills",
       "sourcePath": "code-review",
       "sourceRef": "main",
       "commitSha": "abc123...",
