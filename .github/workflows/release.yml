@@ -170,10 +170,9 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
-
-      - name: Configure npm for OIDC publishing
-        run: npm config set registry https://registry.npmjs.org/
+          node-version: 22
+        env:
+          NODE_AUTH_TOKEN: ""
 
       - uses: actions/download-artifact@v4
         with:
@@ -220,7 +219,7 @@ jobs:
           for pkg_dir in npm/linux-x64 npm/linux-arm64 npm/linux-x64-musl npm/darwin-x64 npm/darwin-arm64 npm/win32-x64-msvc; do
             echo "Publishing $pkg_dir..."
             cd "$pkg_dir"
-            npm publish --access public --provenance
+            npm publish --access public
             cd ../..
           done
 
@@ -240,7 +239,7 @@ jobs:
             fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
           "
 
-          npm publish --access public --provenance
+          npm publish --access public
 
   homebrew:
     name: Update Homebrew formula
