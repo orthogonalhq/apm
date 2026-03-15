@@ -1,5 +1,32 @@
 import Link from "next/link";
 
+function PixelHeart() {
+  // 7×6 chunky pixel heart — rounded bumps on top
+  const pixels = [
+    [0, 1], [0, 4],
+    [1, 0], [1, 1], [1, 2], [1, 3], [1, 4], [1, 5],
+    [2, 0], [2, 1], [2, 2], [2, 3], [2, 4], [2, 5],
+    [3, 1], [3, 2], [3, 3], [3, 4],
+    [4, 2], [4, 3],
+  ];
+
+  return (
+    <svg
+      width="11"
+      height="11"
+      viewBox="0 0 6 5"
+      fill="currentColor"
+      className="text-accent"
+      shapeRendering="crispEdges"
+      aria-label="heart"
+    >
+      {pixels.map(([y, x]) => (
+        <rect key={`${y}-${x}`} x={x} y={y} width="1" height="1" />
+      ))}
+    </svg>
+  );
+}
+
 export function Footer() {
   return (
     <footer className="relative z-10 border-t border-white/[0.06] bg-bg mt-auto">
@@ -47,7 +74,7 @@ export function Footer() {
               &gt; apm
             </span>
             <p className="text-[12px] t-card-desc leading-relaxed">
-              The open source package manager for agent skills.
+              The open registry for agent skills.
             </p>
             <p className="text-[12px] t-card-desc leading-relaxed mt-1.5">
               Built on the{" "}
@@ -66,8 +93,17 @@ export function Footer() {
 
         {/* Bottom bar */}
         <div className="border-t border-white/[0.06] py-4 flex items-center justify-between">
-          <span className="text-[10px] t-ghost font-mono">
-            &copy; {new Date().getFullYear()} Orthogonal
+          <span className="text-[10px] t-ghost font-mono inline-flex items-center gap-1.5">
+            &copy; {new Date().getFullYear()}
+            <a
+              href="https://orthg.nl"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 hover:text-accent transition-colors"
+            >
+              <PixelHeart />
+              Orthogonal
+            </a>
           </span>
           <span className="text-[10px] t-ghost font-mono uppercase tracking-[0.2em]">
             MIT

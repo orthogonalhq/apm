@@ -39,7 +39,7 @@ export function SearchBar({ className = "" }: { className?: string }) {
           />
         </svg>
         <span className="flex-1 text-left text-sm font-mono t-meta">
-          Search skills...
+          Search agent skills...
         </span>
         <kbd className="hidden sm:inline-flex items-center gap-0.5 rounded border border-white/[0.08] bg-white/[0.04] px-1.5 py-0.5 font-mono text-[10px] t-ghost leading-none">
           ⌘K

@@ -1,0 +1,155 @@
+---
+title: REST API Reference
+description: APM registry API endpoints for packages, search, and skill content
+---
+
+## Base URL
+
+```
+https://apm.sh
+```
+
+All endpoints return JSON.
+
+## Endpoints
+
+### `GET /api/packages`
+
+List packages with pagination and sorting.
+
+**Query parameters:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `page` | integer | `1` | Page number (min 1) |
+| `pageSize` | integer | `20` | Results per page (1–100) |
+| `sort` | string | `"name"` | Sort field: `"name"`, `"stars"`, or `"indexed"` |
+| `order` | string | `"asc"` | Sort order: `"asc"` or `"desc"` |
+
+**Response:**
+
+```json
+{
+  "data": [
+    {
+      "name": "code-review",
+      "description": "Systematic code review checklist",
+      "sourceRepo": "user/code-review-skill",
+      "repoOwner": "user",
+      "repoStars": 87,
+      "license": "MIT",
+      "lastIndexedAt": "2026-03-14T00:00:00.000Z"
+    }
+  ],
+  "total": 142,
+  "page": 1,
+  "pageSize": 20
+}
+```
+
+---
+
+### `GET /api/packages/:name`
+
+Get full details for a single package.
+
+**Response:**
+
+```json
+{
+  "id": "uuid",
+  "name": "code-review",
+  "description": "Systematic code review checklist",
+  "sourceRepo": "user/code-review-skill",
+  "sourcePath": "code-review",
+  "sourceRef": "main",
+  "repoOwner": "user",
+  "repoStars": 87,
+  "license": "MIT",
+  "skillMdRaw": "---\nname: code-review\n...",
+  "frontmatter": { "name": "code-review", "description": "..." },
+  "hosted": false,
+  "firstIndexedAt": "2026-03-01T00:00:00.000Z",
+  "lastIndexedAt": "2026-03-14T00:00:00.000Z",
+  "lastCommitSha": "abc123def456..."
+}
+```
+
+**Errors:**
+
+| Status | Body |
+|--------|------|
+| `404` | `{ "error": "Package not found" }` |
+
+---
+
+### `GET /api/packages/:name/skill-md`
+
+Get the raw SKILL.md content for a package.
+
+**Response:** Plain text SKILL.md content.
+
+---
+
+### `GET /api/packages/:name/source`
+
+Redirects to the source repository on GitHub.
+
+**Response:** `302` redirect to `https://github.com/<sourceRepo>`.
+
+---
+
+### `GET /api/search?q=...`
+
+Full-text search across package names and descriptions.
+
+**Query parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `q` | string | Yes | Search query |
+
+**Response:**
+
+```json
+{
+  "results": [
+    {
+      "name": "code-review",
+      "description": "Systematic code review checklist",
+      "sourceRepo": "user/code-review-skill",
+      "repoOwner": "user",
+      "repoStars": 87,
+      "license": "MIT",
+      "lastIndexedAt": "2026-03-14T00:00:00.000Z"
+    }
+  ],
+  "total": 3
+}
+```
+
+Returns up to 50 results, ranked by relevance. An empty or missing `q` parameter returns `{ "results": [], "total": 0 }`.
+
+Search uses PostgreSQL full-text search with English tokenization. Queries are split by whitespace and matched as prefix terms (e.g., `"code rev"` matches `"code-review"`).
+
+---
+
+### `POST /api/publish`
+
+Publish a package to the hosted registry.
+
+**Status:** Not yet implemented. Returns `501`.
+
+---
+
+## Usage from the CLI
+
+The APM CLI uses this API under the hood:
+
+| CLI command | API call |
+|-------------|----------|
+| `apm install <name>` | `GET /api/packages/<name>` |
+| `apm search <query>` | `GET /api/search?q=<query>` |
+| `apm info <name>` | `GET /api/packages/<name>` |
+
+You can override the registry URL with `--registry` or the `APM_REGISTRY` environment variable.

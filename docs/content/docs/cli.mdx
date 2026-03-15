@@ -1,30 +1,166 @@
 ---
 title: CLI Reference
-description: Reference documentation for APM CLI commands
+description: Complete reference for all APM CLI commands and options
 ---
 
-## Commands
+## Global options
 
-### `apm install`
+| Option | Env variable | Default | Description |
+|--------|-------------|---------|-------------|
+| `--registry <url>` | `APM_REGISTRY` | `https://apm.sh` | APM registry URL |
+| `--version` | | | Print version |
+| `--help` | | | Print help |
 
-Install a skill package.
+## `apm install`
 
-```bash
-apm install <package-name>
-```
-
-### `apm publish`
-
-Publish a skill package to the registry.
+Install a skill by name from the registry.
 
 ```bash
-apm publish
+apm install <name>
 ```
 
-### `apm search`
+**What it does:**
 
-Search for skill packages in the registry.
+1. Fetches package metadata from the registry (`/api/packages/<name>`)
+2. Creates `.skills/<name>/` in your project root
+3. Writes the `SKILL.md` file
+4. Updates `apm-lock.json` with the package source, path, ref, and commit SHA
+
+**Project root detection:** APM walks up from the current directory looking for `apm-lock.json`, `package.json`, `Cargo.toml`, or `.git`. Falls back to the current directory.
+
+**Example:**
+
+```bash
+$ apm install code-review
+apm Fetching code-review...
+apm Installed code-review to .skills/code-review
+```
+
+**Result:**
+
+```
+your-project/
+├── .skills/
+│   └── code-review/
+│       └── SKILL.md
+└── apm-lock.json
+```
+
+## `apm search`
+
+Search for skills in the registry.
 
 ```bash
 apm search <query>
 ```
+
+Searches the registry using full-text search. Results show the skill name, metadata (stars, license), description, and source repository.
+
+**Example:**
+
+```bash
+$ apm search "error handling"
+Found 3 skill(s) matching 'error handling':
+
+  error-handling (★ 42 · MIT)
+  Best practices for error handling across languages
+  user/error-handling-skill
+
+  resilient-apis (★ 18 · Apache-2.0)
+  Building resilient API error responses
+  org/resilient-apis
+```
+
+## `apm info`
+
+Show details about a skill.
+
+```bash
+apm info <name>
+```
+
+Fetches and displays package metadata from the registry.
+
+**Example:**
+
+```bash
+$ apm info code-review
+
+  code-review  Systematic code review checklist
+
+  repo:  user/code-review-skill
+  path:  code-review
+  ref:   main
+  owner: user
+  stars: 87
+
+  Install:
+  apm install code-review
+```
+
+## `apm validate`
+
+Validate a local SKILL.md file against the specification.
+
+```bash
+apm validate <path>
+```
+
+Accepts either a path to a `SKILL.md` file or a directory containing one. Checks:
+
+- YAML frontmatter is present and parseable
+- `name` field exists, is valid (lowercase alphanumeric + hyphens, max 64 chars, no consecutive hyphens)
+- `name` matches the parent directory name
+- `description` field exists and is within 1024 characters
+
+**Exit codes:**
+
+| Code | Meaning |
+|------|---------|
+| `0` | Valid |
+| `1` | Validation errors found |
+
+**Example (valid):**
+
+```bash
+$ apm validate ./my-skill
+✓ SKILL.md is valid
+  name: my-skill
+  description: A description of what this skill does
+```
+
+**Example (invalid):**
+
+```bash
+$ apm validate ./bad-skill
+✗ SKILL.md has 2 error(s):
+  · name must be lowercase alphanumeric with hyphens
+  · description must not be empty
+```
+
+## Lockfile
+
+APM maintains an `apm-lock.json` file at your project root. It tracks installed packages:
+
+```json
+{
+  "lockfileVersion": 1,
+  "packages": {
+    "code-review": {
+      "sourceRepo": "user/code-review-skill",
+      "sourcePath": "code-review",
+      "sourceRef": "main",
+      "commitSha": "abc123...",
+      "integrity": null
+    }
+  }
+}
+```
+
+The lockfile ensures reproducible installs. Commit it to version control.
+
+## Environment variables
+
+| Variable | Description |
+|----------|-------------|
+| `APM_REGISTRY` | Override the default registry URL. Same as `--registry`. |

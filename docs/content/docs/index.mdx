@@ -1,26 +1,74 @@
 ---
 title: Getting Started
-description: Learn how to use the Agent Package Manager (APM)
+description: Install the APM CLI and start using agent skills in minutes
 ---
 
 ## What is APM?
 
-APM is the package manager and public registry for agent skills. Discover, install, and share `SKILL.md` packages for AI agents.
+APM (Agent Package Manager) is the package manager and public registry for agent skills. It connects skill authors to the 34+ AI agent products that support the [agentskills.io](https://agentskills.io) open standard — including Claude Code, Cursor, GitHub Copilot, Gemini CLI, Windsurf, and more.
 
-## Quick Start
+Discover skills on the [registry](https://apm.sh), install them with one command, and your agent picks them up automatically.
 
-Install the CLI globally:
+## Install the CLI
+
+### npm
 
 ```bash
 npm install -g apm
 ```
 
-Then install a skill:
+### Cargo (from source)
 
 ```bash
-apm install @example/my-skill
+cargo install apm
 ```
 
-## Next Steps
+### From source
 
-- [CLI Reference](/docs/cli) — all available commands
+```bash
+git clone https://github.com/orthogonal-dev/apm.git
+cd apm/cli
+cargo build --release
+```
+
+## Install your first skill
+
+Search for a skill:
+
+```bash
+apm search "code review"
+```
+
+Install it:
+
+```bash
+apm install code-review
+```
+
+APM fetches the skill from the registry and writes it to your project:
+
+```
+your-project/
+├── .skills/
+│   └── code-review/
+│       └── SKILL.md
+└── apm-lock.json
+```
+
+Your agent automatically detects installed skills in `.skills/` and loads them when relevant.
+
+## How it works
+
+1. **Discover** — browse [apm.sh](https://apm.sh) or use `apm search`
+2. **Install** — `apm install <name>` fetches the skill and writes it to `.skills/`
+3. **Use** — your agent loads installed skills automatically
+
+APM manages the lockfile (`apm-lock.json`) to track installed packages, their source repositories, and git refs.
+
+## Next steps
+
+- [SKILL.md Specification](/docs/what-is-skill-md) — understand the skill format
+- [Composite Skills](/docs/composite-skills) — compose atomic skills into domain expertise
+- [CLI Reference](/docs/cli) — all available commands and options
+- [Publishing](/docs/publishing) — get your skills into the registry
+- [REST API](/docs/api) — integrate with the registry programmatically

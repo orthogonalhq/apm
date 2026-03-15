@@ -13,15 +13,15 @@ const ibmPlexMono = IBM_Plex_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "APM — Agent Package Manager",
+    default: "APM — Discover Agent Skills for AI Agents",
     template: "%s — APM",
   },
   description:
-    "The package manager and public registry for agent skills. Discover, install, and share SKILL.md packages for AI agents.",
+    "Discover and install agent skills for code review, testing, deployment, and more. The open registry for SKILL.md — production-ready skills for 34+ AI agent products.",
   openGraph: {
-    title: "APM — Agent Package Manager",
+    title: "APM — Discover Agent Skills for AI Agents",
     description:
-      "The package manager and public registry for agent skills. Discover, install, and share SKILL.md packages for AI agents.",
+      "Discover and install agent skills for code review, testing, deployment, and more. The open registry for SKILL.md — production-ready skills for 34+ AI agent products.",
     type: "website",
   },
 };

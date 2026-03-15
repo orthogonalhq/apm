@@ -24,7 +24,9 @@
     "react-markdown": "^9",
     "rehype-raw": "^7",
     "rehype-sanitize": "^6",
-    "remark-gfm": "^4"
+    "remark-gfm": "^4",
+    "shiki": "^4.0.2",
+    "tiktoken": "^1.0.22"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

@@ -1,0 +1,50 @@
+---
+title: Opting Out
+description: How to remove your skills from the APM registry
+---
+
+## Why APM indexes public repos
+
+APM follows the same model as Go's module proxy (`proxy.golang.org`) — it indexes all public repositories containing valid SKILL.md files without requiring opt-in. This benefits the ecosystem:
+
+- Skill authors get discovery and distribution with zero effort
+- Users get a single search destination for all available skills
+- The ecosystem grows organically
+
+However, not everyone wants their skills indexed. APM respects that.
+
+## How to opt out
+
+### Option 1: `.apm-exclude` marker file
+
+Add an empty `.apm-exclude` file to your repository root:
+
+```bash
+touch .apm-exclude
+git add .apm-exclude
+git commit -m "Opt out of APM indexing"
+git push
+```
+
+The next time the indexer runs, it will skip your repository. Any existing entries for skills in your repo will be removed from the registry.
+
+### Option 2: Removal request
+
+If you need immediate removal or prefer not to add a marker file, submit a removal request. Contact the APM team with your repository URL and we'll delist it manually.
+
+## What happens when you opt out
+
+- Your skills are removed from the registry index
+- Package pages on [apm.sh](https://apm.sh) are taken down
+- `apm search` and `apm install` will no longer find your packages
+- Existing installations (`.skills/` directories in user projects) are not affected — APM never modifies installed packages
+
+## Opting back in
+
+Remove the `.apm-exclude` file and push. Your skills will be re-indexed on the next daily indexer run.
+
+```bash
+git rm .apm-exclude
+git commit -m "Re-enable APM indexing"
+git push
+```

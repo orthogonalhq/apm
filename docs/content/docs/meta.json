@@ -1,4 +1,13 @@
 {
   "title": "Documentation",
-  "pages": ["index", "cli"]
+  "pages": [
+    "index",
+    "what-is-skill-md",
+    "composite-skills",
+    "cli",
+    "registry",
+    "publishing",
+    "api",
+    "delisting"
+  ]
 }

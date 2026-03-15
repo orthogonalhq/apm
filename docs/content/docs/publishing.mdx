@@ -1,0 +1,92 @@
+---
+title: Publishing a Skill
+description: How to get your skills into the APM registry
+---
+
+## Overview
+
+There are two ways to get a skill into the APM registry:
+
+1. **Automatic indexing** (available now) — push a valid SKILL.md to a public GitHub repo and APM indexes it automatically
+2. **Direct publishing** (coming soon) — publish directly via `apm publish` for faster installs, version control, and namespace ownership
+
+## Get indexed automatically
+
+The simplest path. No account, no CLI, no publishing step.
+
+### 1. Create a public GitHub repository
+
+Your skill can live in its own repo or in a subdirectory of an existing repo. APM indexes both.
+
+### 2. Add a valid SKILL.md
+
+Create a directory named after your skill with a `SKILL.md` inside:
+
+```
+my-skill/
+└── SKILL.md
+```
+
+The frontmatter must include `name` and `description`:
+
+```yaml
+---
+name: my-skill
+description: What this skill does and when to use it
+---
+
+Your skill content here...
+```
+
+The `name` must match the parent directory name. See the [SKILL.md Specification](/docs/what-is-skill-md) for all validation rules.
+
+### 3. Validate before pushing
+
+Use the CLI to catch issues before they hit the indexer:
+
+```bash
+apm validate ./my-skill
+```
+
+### 4. Push and wait
+
+Push to GitHub. The APM indexer runs daily and picks up new skills automatically. Your skill will appear on [apm.sh](https://apm.sh) and be installable via `apm install my-skill`.
+
+## Direct publishing (coming soon)
+
+Direct publishing will offer:
+
+- **`apm publish`** — publish from the CLI with one command
+- **GitHub Actions** — `orthogonal/apm-publish@v1` for CI/CD integration
+- **Version history** — publish multiple versions, consumers can pin
+- **Namespace ownership** — claim your package name (first-come-first-serve, npm model)
+- **Faster installs** — packages served directly from the registry
+
+### Publish flow (future)
+
+```
+Author creates/edits skill
+  → apm validate (spec compliance check)
+  → Author reviews and confirms
+  → apm publish (uploads to hosted registry)
+  → Registry validates, indexes, publishes page
+```
+
+**Nothing is published without explicit confirmation.** An agent can create a skill, but the publish step always requires human authorization.
+
+### Authentication
+
+Direct publishing will use GitHub-based authentication (OAuth). Publishers authenticate via their GitHub identity — no separate account required.
+
+## Private packages (coming soon)
+
+Private packages will be available on a paid tier:
+
+- Scoped to an organization (`@org/package-name`)
+- Access controlled by org membership
+- Same publish/install flow as public packages
+- Not publicly visible or searchable
+
+## Opting out
+
+If your public repo has a SKILL.md but you'd rather not be indexed, see [Opting Out](/docs/delisting).

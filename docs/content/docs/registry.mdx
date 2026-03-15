@@ -1,0 +1,94 @@
+---
+title: How the Registry Works
+description: Two-tier registry architecture — proxied indexing from GitHub and hosted publishing
+---
+
+## Overview
+
+The APM registry serves as the central discovery and distribution hub for agent skills. It operates in two tiers:
+
+- **Proxied tier** — APM indexes public GitHub repos containing valid SKILL.md files. Skills are discoverable and installable immediately, with no action required from authors.
+- **Hosted tier** — Authors publish directly to APM via `apm publish`. Packages are hosted by the registry for faster installs, versioned snapshots, and guaranteed availability.
+
+Both tiers are searchable on [apm.sh](https://apm.sh) and installable via `apm install`.
+
+## Proxied tier (live today)
+
+The proxied tier solves the cold-start problem. Instead of launching with an empty registry, APM indexes every public GitHub repository with a valid `SKILL.md` file.
+
+### How indexing works
+
+1. A daily indexer searches the GitHub Code Search API for files named `SKILL.md`
+2. For each result, APM checks for a `.apm-exclude` marker file in the repo root — if present, the repo is skipped
+3. APM fetches repository metadata (stars, license, default branch)
+4. APM fetches the `SKILL.md` content and validates it against the [specification](/docs/what-is-skill-md)
+5. Only skills with valid frontmatter (`name` and `description`) are indexed
+6. Valid skills are upserted into the registry database
+
+### What gets indexed
+
+A skill is indexed if **all** of the following are true:
+
+- The repository is public
+- The file is named `SKILL.md`
+- The frontmatter contains valid `name` and `description` fields
+- The `name` field passes validation (lowercase alphanumeric + hyphens, max 64 chars)
+- There is no `.apm-exclude` file in the repository root
+
+### What doesn't get indexed
+
+- Private repositories
+- Files named something other than `SKILL.md`
+- Files with missing or invalid frontmatter
+- Repos that have opted out via `.apm-exclude`
+
+### Proxied install flow
+
+When you `apm install` a proxied package, the CLI fetches the skill content from the registry (which mirrors it from the source repository). The registry stores the full `SKILL.md` content, so installs don't hit GitHub directly.
+
+## Hosted tier (coming soon)
+
+The hosted tier lets authors publish packages directly to APM:
+
+```bash
+apm publish ./my-skill
+```
+
+Hosted packages get:
+
+- **Faster installs** — served from the registry, not proxied from GitHub
+- **Version history** — publish multiple versions, pin to specific releases
+- **Guaranteed availability** — no dependency on the source repo staying public
+- **Namespace claims** — first-come-first-serve, npm-style
+
+### Migration path
+
+Proxied packages naturally migrate to hosted as authors claim their namespace and publish directly. There's no disruption — the package name stays the same, and existing `apm install` commands continue to work.
+
+## Search
+
+The registry provides full-text search powered by PostgreSQL. Search covers package names and descriptions.
+
+**On the web:** Use the search bar at [apm.sh](https://apm.sh)
+
+**From the CLI:**
+
+```bash
+apm search "code review"
+```
+
+**From the API:**
+
+```bash
+curl "https://apm.sh/api/search?q=code+review"
+```
+
+## The public indexing model
+
+APM's proxied tier follows the same model as Go's module proxy (`proxy.golang.org`) — it indexes all public modules without requiring opt-in. This is a win for the community:
+
+- **Skill authors** get discovery without any publishing step
+- **Users** get a single search destination for all available skills
+- **The ecosystem** grows organically as more people create skills
+
+If you'd rather not be indexed, see [Opting Out](/docs/delisting).

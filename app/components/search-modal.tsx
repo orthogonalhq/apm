@@ -12,7 +12,27 @@ import {
 interface SearchResult {
   name: string;
   description: string;
+  kind: string;
+  category: string | null;
   sourceRepo: string;
+  tokenCount: number;
+  verified: boolean;
+}
+
+function KindBadge({ kind }: { kind: string }) {
+  const colors: Record<string, string> = {
+    skill: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+    "composite-skill": "bg-blue-500/10 text-blue-400 border-blue-500/20",
+    workflow: "bg-amber-500/10 text-amber-400 border-amber-500/20",
+    app: "bg-purple-500/10 text-purple-400 border-purple-500/20",
+  };
+  return (
+    <span
+      className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-mono uppercase tracking-wider border ${colors[kind] ?? "bg-white/5 text-white/40 border-white/10"}`}
+    >
+      {kind}
+    </span>
+  );
 }
 
 export function SearchModal({
@@ -98,11 +118,16 @@ export function SearchModal({
       } else if (e.key === "ArrowUp") {
         e.preventDefault();
         setSelected((s) => Math.max(s - 1, 0));
-      } else if (e.key === "Enter" && results[selected]) {
-        navigate(results[selected].name);
+      } else if (e.key === "Enter") {
+        if (results[selected]) {
+          navigate(results[selected].name);
+        } else if (query.trim()) {
+          onClose();
+          router.push(`/packages?q=${encodeURIComponent(query.trim())}`);
+        }
       }
     },
-    [results, selected, navigate]
+    [results, selected, navigate, query, onClose, router]
   );
 
   if (!open) return null;
@@ -139,7 +164,7 @@ export function SearchModal({
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Search skills..."
+              placeholder="Search agent skills..."
               className="flex-1 bg-transparent py-3.5 text-sm text-fg/90 placeholder:t-meta outline-none font-mono"
             />
             <kbd className="hidden sm:inline-flex items-center gap-0.5 rounded border border-white/[0.08] bg-white/[0.04] px-1.5 py-0.5 font-mono text-[10px] t-ghost">
@@ -178,13 +203,31 @@ export function SearchModal({
                     <span className="font-mono text-[10px] t-meta mt-0.5 shrink-0">
                       &gt;
                     </span>
-                    <div className="min-w-0">
-                      <span className="block font-mono text-sm t-card-title truncate">
-                        {result.name}
-                      </span>
-                      <span className="block text-xs t-card-desc mt-0.5 truncate">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-sm t-card-title truncate">
+                          {result.name}
+                        </span>
+                        {result.verified && (
+                          <span className="text-accent text-[10px]" title="Verified">
+                            &#x2713;
+                          </span>
+                        )}
+                      </div>
+                      <span className="block text-xs t-card-desc mt-0.5 line-clamp-1">
                         {result.description}
                       </span>
+                      <div className="flex items-center gap-2 mt-1">
+                        <KindBadge kind={result.kind} />
+                        {result.category && (
+                          <span className="font-mono text-[9px] t-meta">
+                            {result.category}
+                          </span>
+                        )}
+                        <span className="font-mono text-[9px] t-ghost">
+                          {result.tokenCount.toLocaleString()} tokens
+                        </span>
+                      </div>
                     </div>
                   </button>
                 ))}
@@ -194,11 +237,28 @@ export function SearchModal({
             {!loading && !query.trim() && (
               <div className="px-4 py-8 text-center">
                 <span className="font-mono text-xs t-meta">
-                  Type to search skills...
+                  Type to search agent skills...
                 </span>
               </div>
             )}
           </div>
+
+          {query.trim() && (
+            <button
+              onClick={() => {
+                onClose();
+                router.push(`/packages?q=${encodeURIComponent(query.trim())}`);
+              }}
+              className="w-full text-left px-4 py-3 flex items-center gap-3 border-t border-white/[0.06] transition-colors hover:bg-white/[0.04]"
+            >
+              <svg className="h-3.5 w-3.5 shrink-0 t-meta" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <span className="font-mono text-xs text-accent">
+                View all results for &ldquo;{query.trim()}&rdquo;
+              </span>
+            </button>
+          )}
         </div>
       </div>
     </div>

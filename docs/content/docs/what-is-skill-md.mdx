@@ -1,0 +1,145 @@
+---
+title: SKILL.md Specification
+description: The SKILL.md format — how to write agent skills that work across 34+ AI products
+---
+
+## What is a SKILL.md?
+
+A `SKILL.md` file is a self-contained unit of domain expertise for AI agents. It follows the [agentskills.io](https://agentskills.io/specification) open standard, supported by 34+ agent products including Claude Code, Cursor, GitHub Copilot, and Gemini CLI.
+
+A skill is a markdown file with YAML frontmatter. The frontmatter identifies the skill. The body contains the expertise — instructions, heuristics, checklists, or domain knowledge that an agent loads when the skill is relevant.
+
+## Structure
+
+```
+my-skill/
+├── SKILL.md          # Required: frontmatter + skill content
+├── references/       # Optional: supporting documents
+├── scripts/          # Optional: executable code
+└── assets/           # Optional: static resources
+```
+
+The directory name must match the `name` field in the frontmatter.
+
+## Frontmatter
+
+Every SKILL.md requires YAML frontmatter with at least `name` and `description`:
+
+```yaml
+---
+name: code-review
+description: >
+  Systematic code review checklist covering correctness, readability,
+  performance, and security. Use when reviewing pull requests or
+  conducting code quality assessments.
+---
+```
+
+### Required fields
+
+| Field | Type | Constraints |
+|-------|------|-------------|
+| `name` | string | Lowercase alphanumeric with hyphens. Max 64 characters. No leading, trailing, or consecutive hyphens. Must match the parent directory name. |
+| `description` | string | Max 1024 characters. Should describe what the skill does and when to use it. |
+
+### Optional fields
+
+The agentskills.io spec allows additional frontmatter fields. Common additions:
+
+```yaml
+---
+name: code-review
+description: Systematic code review checklist
+metadata:
+  version: "1.0.0"
+  author: your-github-username
+  tags: ["review", "quality"]
+---
+```
+
+## Validation rules
+
+APM enforces these rules (both in the CLI and during registry indexing):
+
+**Name:**
+- Must match the regex `^[a-z0-9]([a-z0-9-]*[a-z0-9])?$`
+- Maximum 64 characters
+- No consecutive hyphens (`--`)
+- Must match the parent directory name (e.g., `code-review/SKILL.md` must have `name: code-review`)
+
+**Description:**
+- Required, non-empty
+- Maximum 1024 characters
+
+**Frontmatter:**
+- Must be valid YAML
+- Must start with `---` and end with `---`
+
+## Example
+
+A complete, minimal skill:
+
+```markdown
+---
+name: error-handling
+description: >
+  Best practices for error handling across languages. Covers error
+  propagation, user-facing messages, logging, and recovery strategies.
+---
+
+## Error Handling Guidelines
+
+### Fail fast, fail clearly
+
+- Validate inputs at system boundaries. Do not silently accept invalid data.
+- Throw specific error types, not generic exceptions.
+- Include context in error messages: what failed, why, and what the caller can do about it.
+
+### Error propagation
+
+- Let errors bubble up to the layer that can handle them meaningfully.
+- Do not catch exceptions just to re-throw them.
+- Use language-native error handling (Result in Rust, try/catch in JS, error returns in Go).
+
+### Logging
+
+- Log errors with enough context to reproduce: input values, stack trace, timestamp.
+- Do not log sensitive data (tokens, passwords, PII).
+- Use structured logging (JSON) in production systems.
+```
+
+## Validating locally
+
+Use the APM CLI to check your skill before publishing:
+
+```bash
+apm validate ./my-skill
+```
+
+Or point directly at the file:
+
+```bash
+apm validate ./my-skill/SKILL.md
+```
+
+A valid skill prints:
+
+```
+✓ SKILL.md is valid
+  name: my-skill
+  description: A description of what this skill does
+```
+
+Validation errors list each issue:
+
+```
+✗ SKILL.md has 2 error(s):
+  · name must be lowercase alphanumeric with hyphens
+  · description must not be empty
+```
+
+## Next steps
+
+- [Composite Skills](/docs/composite-skills) — compose multiple atomic skills into domain expertise
+- [Publishing](/docs/publishing) — get your skill into the APM registry
+- [CLI Reference](/docs/cli) — all CLI commands

@@ -39,7 +39,7 @@ export function SearchTrigger({ className = "" }: { className?: string }) {
             d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
           />
         </svg>
-        <span className="flex-1 text-left">Search skills...</span>
+        <span className="flex-1 text-left">Search agent skills...</span>
         <kbd className="hidden sm:inline-flex items-center gap-0.5 rounded border border-white/[0.08] bg-white/[0.04] px-1.5 py-0.5 font-mono text-[10px] t-ghost leading-none">
           ⌘K
         </kbd>

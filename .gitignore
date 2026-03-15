@@ -28,6 +28,13 @@ Thumbs.db
 # Vercel
 .vercel/
 
+# Private registry subrepo (proprietary indexing/scraping)
+.registry/
+.internal/
+app/scripts/
+app/app/api/indexer/
+app/lib/github.ts
+
 # Debug
 npm-debug.log*
 pnpm-debug.log*
