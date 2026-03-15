@@ -25,7 +25,8 @@ pub async fn run(registry: &str, query: &str) -> Result<()> {
     );
 
     for result in &data.results {
-        println!("  {} {}", result.name.cyan().bold(), format_meta(result));
+        let full_name = format!("@{}/{}", result.scope, result.name);
+        println!("  {} {}", full_name.cyan().bold(), format_meta(result));
         println!("  {}", result.description.dimmed());
         println!("  {}\n", result.source_repo.dimmed());
     }

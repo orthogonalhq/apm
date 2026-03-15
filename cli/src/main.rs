@@ -18,10 +18,10 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    /// Install a skill by name
+    /// Install a skill by scoped name (e.g. @anthropics/code-review)
     Install {
-        /// Skill name to install
-        name: String,
+        /// Scoped package name (@scope/name)
+        package: String,
     },
     /// Search for skills
     Search {
@@ -30,8 +30,8 @@ enum Commands {
     },
     /// Show details about a skill
     Info {
-        /// Skill name
-        name: String,
+        /// Scoped package name (@scope/name)
+        package: String,
     },
     /// Validate a local SKILL.md file
     Validate {
@@ -40,14 +40,33 @@ enum Commands {
     },
 }
 
+/// Parse "@scope/name" into (scope, name). Exits with error if invalid.
+fn parse_scoped_name(input: &str) -> anyhow::Result<(String, String)> {
+    let input = input.strip_prefix('@').unwrap_or(input);
+    let parts: Vec<&str> = input.splitn(2, '/').collect();
+    if parts.len() != 2 || parts[0].is_empty() || parts[1].is_empty() {
+        anyhow::bail!(
+            "Invalid package name '{}'. Use @scope/name format (e.g. @anthropics/code-review)",
+            input
+        );
+    }
+    Ok((parts[0].to_string(), parts[1].to_string()))
+}
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
-        Commands::Install { name } => commands::install::run(&cli.registry, &name).await,
+        Commands::Install { package } => {
+            let (scope, name) = parse_scoped_name(&package)?;
+            commands::install::run(&cli.registry, &scope, &name).await
+        }
         Commands::Search { query } => commands::search::run(&cli.registry, &query).await,
-        Commands::Info { name } => commands::info::run(&cli.registry, &name).await,
+        Commands::Info { package } => {
+            let (scope, name) = parse_scoped_name(&package)?;
+            commands::info::run(&cli.registry, &scope, &name).await
+        }
         Commands::Validate { path } => commands::validate::run(&path),
     }
 }

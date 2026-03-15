@@ -2,13 +2,15 @@ use crate::types::PackageResponse;
 use anyhow::Result;
 use colored::Colorize;
 
-pub async fn run(registry: &str, name: &str) -> Result<()> {
+pub async fn run(registry: &str, scope: &str, name: &str) -> Result<()> {
+    let full_name = format!("@{}/{}", scope, name);
+
     let client = reqwest::Client::new();
-    let url = format!("{}/api/packages/{}", registry, name);
+    let url = format!("{}/api/packages/@{}/{}", registry, scope, name);
     let res = client.get(&url).send().await?;
 
     if res.status() == 404 {
-        anyhow::bail!("Package '{}' not found", name);
+        anyhow::bail!("Package '{}' not found", full_name);
     }
 
     if !res.status().is_success() {
@@ -18,8 +20,9 @@ pub async fn run(registry: &str, name: &str) -> Result<()> {
     let pkg: PackageResponse = res.json().await?;
 
     println!();
-    println!("  {} {}", pkg.name.cyan().bold(), pkg.description);
+    println!("  {} {}", full_name.cyan().bold(), pkg.description);
     println!();
+    println!("  {} @{}", "scope:".dimmed(), pkg.scope);
     println!("  {}  {}", "repo:".dimmed(), pkg.source_repo);
     println!("  {}  {}", "path:".dimmed(), pkg.source_path);
     println!("  {}   {}", "ref:".dimmed(), pkg.source_ref);
@@ -30,7 +33,7 @@ pub async fn run(registry: &str, name: &str) -> Result<()> {
     }
     println!();
     println!("  {}", "Install:".bold());
-    println!("  apm install {}", pkg.name);
+    println!("  apm install {}", full_name);
     println!();
 
     Ok(())

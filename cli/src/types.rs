@@ -3,6 +3,7 @@ use std::collections::HashMap;
 
 #[derive(Debug, Deserialize)]
 pub struct Package {
+    pub scope: String,
     pub name: String,
     pub description: String,
     pub source_repo: Option<String>,
@@ -20,6 +21,7 @@ pub struct Package {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PackageResponse {
+    pub scope: String,
     pub name: String,
     pub description: String,
     pub source_repo: String,
@@ -35,6 +37,7 @@ pub struct PackageResponse {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SearchResult {
+    pub scope: String,
     pub name: String,
     pub description: String,
     pub source_repo: String,
