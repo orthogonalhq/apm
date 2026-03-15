@@ -87,6 +87,33 @@ function formatType(kind: string | null): string | null {
   }
 }
 
+const languageNames: Record<string, string> = {
+  en: "English",
+  zh: "Chinese",
+  ja: "Japanese",
+  ko: "Korean",
+  es: "Spanish",
+  fr: "French",
+  de: "German",
+  pt: "Portuguese",
+  ru: "Russian",
+  ar: "Arabic",
+  hi: "Hindi",
+  it: "Italian",
+  nl: "Dutch",
+  pl: "Polish",
+  tr: "Turkish",
+  vi: "Vietnamese",
+  th: "Thai",
+  uk: "Ukrainian",
+  sv: "Swedish",
+  cs: "Czech",
+};
+
+function formatLanguage(code: string): string {
+  return languageNames[code] ?? code.toUpperCase();
+}
+
 async function SkillMdHighlight({ content }: { content: string }) {
   const html = await codeToHtml(content, {
     lang: "markdown",
@@ -183,6 +210,7 @@ export default async function PackagePage({
         { label: "Kind", value: formatKind(pkg.kind) },
         ...(formatType(pkg.kind) ? [{ label: "Type", value: formatType(pkg.kind)! }] : []),
         ...(pkg.version ? [{ label: "Version", value: pkg.version }] : []),
+        { label: "Language", value: formatLanguage(pkg.language) },
         {
           label: "Progressive",
           value: pkg.progressiveDisclosure ? "Yes" : "No",
