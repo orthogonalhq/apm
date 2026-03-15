@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { PackageListItem } from "@apm/types";
+import { VerifiedBadge } from "./verified-badge";
 
 const kindColors: Record<string, string> = {
   skill: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
@@ -22,11 +23,7 @@ export function PackageCard({ pkg }: { pkg: PackageListItem }) {
               <span className="t-meta">@{pkg.scope}/</span>
               <span className="t-card-title">{pkg.name}</span>
             </h3>
-            {pkg.verified && (
-              <span className="text-accent text-[10px]" title="Verified">
-                &#x2713;
-              </span>
-            )}
+            {pkg.verified && <VerifiedBadge />}
             <span
               className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-mono uppercase tracking-wider border ${kindColors[pkg.kind] ?? "bg-white/5 text-white/40 border-white/10"}`}
             >
