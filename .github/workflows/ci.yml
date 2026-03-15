@@ -18,17 +18,27 @@ jobs:
           node-version: 20
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Generate fumadocs sources
+        run: pnpm --filter @apm/docs exec fumadocs-mdx
       - run: pnpm typecheck
       - run: pnpm lint
 
   cli:
-    name: CLI (build)
+    name: CLI (${{ matrix.target }})
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         include:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+            cross: true
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+          - os: macos-13
+            target: x86_64-apple-darwin
           - os: macos-latest
             target: aarch64-apple-darwin
           - os: windows-latest
@@ -41,5 +51,19 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: cli
-      - run: cargo build --release --target ${{ matrix.target }}
+          key: ${{ matrix.target }}
+      - name: Install cross
+        if: matrix.cross
+        run: cargo install cross --git https://github.com/cross-rs/cross
+      - name: Install musl-tools
+        if: contains(matrix.target, 'musl')
+        run: sudo apt-get update && sudo apt-get install -y musl-tools
+      - name: Build
         working-directory: cli
+        shell: bash
+        run: |
+          if [ "${{ matrix.cross }}" = "true" ]; then
+            cross build --release --target ${{ matrix.target }}
+          else
+            cargo build --release --target ${{ matrix.target }}
+          fi
