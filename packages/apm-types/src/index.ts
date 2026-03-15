@@ -3,8 +3,21 @@
 export type PackageKind = "skill" | "composite-skill" | "workflow" | "app";
 export type PackageStatus = "active" | "deprecated" | "archived";
 
+/** Canonical display name: @scope/name */
+export function formatPackageId(scope: string, name: string): string {
+  return `@${scope}/${name}`;
+}
+
+/** Parse "@scope/name" into parts. Returns null if invalid. */
+export function parsePackageId(id: string): { scope: string; name: string } | null {
+  const match = id.match(/^@([a-z0-9_-]+)\/([a-z0-9_-]+)$/);
+  if (!match) return null;
+  return { scope: match[1], name: match[2] };
+}
+
 export interface Package {
   id: string;
+  scope: string;
   name: string;
   description: string;
 
@@ -56,6 +69,7 @@ export interface Package {
 }
 
 export interface PackageListItem {
+  scope: string;
   name: string;
   description: string;
   kind: PackageKind;

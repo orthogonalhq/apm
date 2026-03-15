@@ -9,6 +9,7 @@ import {
   timestamp,
   index,
   primaryKey,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
@@ -18,7 +19,8 @@ export const packages = pgTable(
     id: uuid("id")
       .primaryKey()
       .default(sql`gen_random_uuid()`),
-    name: varchar("name", { length: 64 }).notNull().unique(),
+    scope: varchar("scope", { length: 128 }).notNull(),
+    name: varchar("name", { length: 64 }).notNull(),
     description: varchar("description", { length: 1024 }).notNull(),
 
     // ── Classification ──────────────────────────────────────
@@ -81,10 +83,12 @@ export const packages = pgTable(
     lastCommitSha: varchar("last_commit_sha", { length: 40 }),
   },
   (table) => [
+    uniqueIndex("idx_packages_scope_name").on(table.scope, table.name),
+    index("idx_packages_scope").on(table.scope),
     index("idx_packages_name").on(table.name),
     index("idx_packages_fts").using(
       "gin",
-      sql`to_tsvector('english', ${table.name} || ' ' || ${table.description})`
+      sql`to_tsvector('english', ${table.scope} || ' ' || ${table.name} || ' ' || ${table.description})`
     ),
     index("idx_packages_kind").on(table.kind),
     index("idx_packages_category").on(table.category),
