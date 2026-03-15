@@ -7,8 +7,32 @@ on:
     branches: [main]
 
 jobs:
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    outputs:
+      web: ${{ steps.filter.outputs.web }}
+      cli: ${{ steps.filter.outputs.cli }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            web:
+              - 'app/**'
+              - 'packages/**'
+              - 'docs/**'
+              - 'package.json'
+              - 'pnpm-lock.yaml'
+              - 'turbo.json'
+            cli:
+              - 'cli/**'
+
   web:
-    name: Web (lint + typecheck + build)
+    name: Web (lint + typecheck)
+    needs: changes
+    if: needs.changes.outputs.web == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -25,6 +49,8 @@ jobs:
 
   cli:
     name: CLI (${{ matrix.target }})
+    needs: changes
+    if: needs.changes.outputs.cli == 'true'
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
