@@ -186,14 +186,19 @@ nav[data-fd-nav] {
 }
 
 /* Code blocks */
-.prose pre,
-[data-fd-codeblock] pre {
+figure[data-rehype-pretty-code-figure] > div {
+  padding: 4px;
+}
+
+figure[data-rehype-pretty-code-figure] pre {
+  margin: 0;
+  border-radius: 8px;
+}
+
+pre {
   background: #141414 !important;
   border: 1px solid #222222 !important;
-  border-radius: 6px;
-  padding: 0.875rem 1rem;
-  margin: 1.25rem 0;
-  overflow-x: auto;
+  border-radius: 8px;
 }
 
 code {
@@ -201,14 +206,12 @@ code {
   font-size: 0.875em;
 }
 
-/* Inline code */
 :not(pre) > code {
   background: rgba(250, 93, 43, 0.08);
   color: #FA8E2E;
-  padding: 0.15em 0.4em;
+  padding: 0.125em 0.375em;
   border-radius: 4px;
   border: 1px solid rgba(250, 93, 43, 0.15);
-  font-size: 0.85em;
 }
 
 /* Callout/admonition styling */
