@@ -3,6 +3,7 @@ import { GeistSans } from "geist/font/sans";
 import { IBM_Plex_Mono } from "next/font/google";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
+import { AuthNav } from "@/components/auth-nav";
 import "./globals.css";
 
 const BASE_URL = process.env.VERCEL_URL
@@ -74,7 +75,7 @@ export default function RootLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
         />
-        <Header />
+        <Header authSlot={<AuthNav />} />
         <main className="flex-1">{children}</main>
         <Footer />
       </body>

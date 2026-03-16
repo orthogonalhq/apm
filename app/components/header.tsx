@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { SearchTrigger } from "./search-trigger";
 
-export function Header() {
+export function Header({ authSlot }: { authSlot?: React.ReactNode }) {
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
@@ -54,7 +54,10 @@ export function Header() {
         {/* Search trigger */}
         <SearchTrigger className="flex-1 max-w-xs ml-auto" />
 
-        {/* Right side */}
+        {/* Auth */}
+        {authSlot}
+
+        {/* GitHub */}
         <a
           href="https://github.com/orthogonalhq/apm"
           target="_blank"
