@@ -19,9 +19,9 @@
     "typescript": "^5"
   },
   "dependencies": {
-    "fumadocs-core": "^16.6.14",
-    "fumadocs-mdx": "^14.2.9",
-    "fumadocs-ui": "^16.6.14",
+    "fumadocs-core": "^16.6.17",
+    "fumadocs-mdx": "^14.2.10",
+    "fumadocs-ui": "^16.6.17",
     "next": "16.1.6",
     "react": "19.2.3",
     "react-dom": "19.2.3"
