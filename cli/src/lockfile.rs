@@ -27,6 +27,8 @@ pub struct LockedPackage {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub kind: Option<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub dependencies: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub tags: Vec<String>,
 }
 
@@ -91,6 +93,7 @@ impl Lockfile {
         commit_sha: Option<&str>,
         description: Option<&str>,
         kind: Option<&str>,
+        dependencies: Vec<String>,
         tags: Vec<String>,
     ) {
         self.packages.insert(
@@ -103,6 +106,7 @@ impl Lockfile {
                 integrity: None,
                 description: description.map(String::from),
                 kind: kind.map(String::from),
+                dependencies,
                 tags,
             },
         );

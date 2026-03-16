@@ -15,7 +15,7 @@ pub async fn run_one(registry: &str, scope: &str, name: &str) -> Result<()> {
     let skills_dir = root.join(".skills").join(&pkg.scope).join(&pkg.name);
     write_skill(&skills_dir, &pkg)?;
 
-    let (description, kind, tags) = parse_frontmatter_metadata(&pkg.skill_md_raw);
+    let (description, kind, dependencies, tags) = parse_frontmatter_metadata(&pkg.skill_md_raw);
 
     let mut lockfile = Lockfile::load(&root)?;
     lockfile.add_package(
@@ -26,6 +26,7 @@ pub async fn run_one(registry: &str, scope: &str, name: &str) -> Result<()> {
         None,
         description.as_deref(),
         kind.as_deref(),
+        dependencies,
         tags,
     );
     lockfile.save(&root)?;
@@ -112,22 +113,22 @@ fn write_skill(skills_dir: &std::path::Path, pkg: &PackageResponse) -> Result<()
     Ok(())
 }
 
-/// Extract description, kind, and tags from SKILL.md frontmatter.
-fn parse_frontmatter_metadata(content: &str) -> (Option<String>, Option<String>, Vec<String>) {
+/// Extract description, kind, dependencies, and tags from SKILL.md frontmatter.
+fn parse_frontmatter_metadata(content: &str) -> (Option<String>, Option<String>, Vec<String>, Vec<String>) {
     let trimmed = content.trim_start();
     if !trimmed.starts_with("---") {
-        return (None, None, Vec::new());
+        return (None, None, Vec::new(), Vec::new());
     }
     let after_first = &trimmed[3..];
     let end = match after_first.find("---") {
         Some(e) => e,
-        None => return (None, None, Vec::new()),
+        None => return (None, None, Vec::new(), Vec::new()),
     };
     let fm = &after_first[..end];
 
     let yaml: serde_yaml::Value = match serde_yaml::from_str(fm) {
         Ok(v) => v,
-        Err(_) => return (None, None, Vec::new()),
+        Err(_) => return (None, None, Vec::new(), Vec::new()),
     };
 
     let description = yaml
@@ -140,6 +141,16 @@ fn parse_frontmatter_metadata(content: &str) -> (Option<String>, Option<String>,
         .and_then(|v| v.as_str())
         .map(String::from);
 
+    let dependencies = yaml
+        .get("dependencies")
+        .and_then(|v| v.as_sequence())
+        .map(|seq| {
+            seq.iter()
+                .filter_map(|v| v.as_str().map(String::from))
+                .collect()
+        })
+        .unwrap_or_default();
+
     let tags = yaml
         .get("tags")
         .and_then(|v| v.as_sequence())
@@ -150,5 +161,5 @@ fn parse_frontmatter_metadata(content: &str) -> (Option<String>, Option<String>,
         })
         .unwrap_or_default();
 
-    (description, kind, tags)
+    (description, kind, dependencies, tags)
 }
