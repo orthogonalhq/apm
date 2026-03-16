@@ -109,12 +109,10 @@ export default async function HomePage() {
                         <span className="bg-accent text-black font-normal px-0.5">
                             &gt;
                         </span>
-                        <span className="ml-1.5">The Open Registry for Agent Skills</span>
+                        <span className="ml-1.5">Agent Package Manager</span>
                     </p>
                     <h1 className="font-mono text-4xl sm:text-5xl md:text-6xl font-semibold tracking-[-0.02em] leading-tight t-heading">
-                        Agent skills
-                        <br />
-                        <span className="accent-gradient-text">for every AI product</span>
+                        Agent skills registry
                     </h1>
                     <p className="mt-5 text-sm t-card-desc max-w-lg mx-auto leading-relaxed">
                         APM is the open registry for the{" "}
@@ -126,8 +124,8 @@ export default async function HomePage() {
                         >
                             agentskills.io
                         </a>{" "}
-                        standard. Discover and install agent skills, composite skills,
-                        workflows, and apps across 34+ agent products.
+                        standard, and frontier specifications. Discover and install
+                        agent skills, composite skills, workflows, and apps.
                     </p>
                     <p className="font-mono mt-5 text-sm t-card-desc max-w-lg mx-auto leading-relaxed">
 
