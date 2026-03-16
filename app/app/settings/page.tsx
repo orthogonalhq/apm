@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import { redirect } from "next/navigation";
 import { getPublisher } from "@/lib/auth/session";
 import { db } from "@/lib/db";
@@ -57,9 +58,11 @@ export default async function SettingsPage() {
         </h1>
         <div className="flex items-center gap-4">
           {publisher.avatarUrl && (
-            <img
+            <Image
               src={publisher.avatarUrl}
               alt=""
+              width={48}
+              height={48}
               className="w-12 h-12 rounded-full border border-white/[0.08]"
             />
           )}

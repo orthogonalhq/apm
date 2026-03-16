@@ -55,7 +55,7 @@ export function TokenActions() {
       {createdToken && (
         <div className="mt-3 p-3 rounded-md bg-green-500/5 border border-green-500/20">
           <p className="text-xs text-green-400 mb-2">
-            Token created. Copy it now — it won't be shown again.
+            Token created. Copy it now — it will not be shown again.
           </p>
           <code className="block text-xs font-mono t-heading bg-white/[0.04] p-2 rounded break-all select-all">
             {createdToken}

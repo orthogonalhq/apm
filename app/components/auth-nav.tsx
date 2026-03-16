@@ -1,4 +1,5 @@
 import { getPublisher } from "@/lib/auth/session";
+import Image from "next/image";
 import Link from "next/link";
 
 export async function AuthNav() {
@@ -21,9 +22,11 @@ export async function AuthNav() {
       className="ml-3 flex items-center gap-2 shrink-0"
     >
       {publisher.avatarUrl ? (
-        <img
+        <Image
           src={publisher.avatarUrl}
           alt=""
+          width={24}
+          height={24}
           className="w-6 h-6 rounded-full border border-white/[0.08] hover:border-accent/40 transition-colors"
         />
       ) : (

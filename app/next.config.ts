@@ -23,6 +23,11 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   transpilePackages: ["@apm/types"],
+  images: {
+    remotePatterns: [
+      { protocol: "https", hostname: "avatars.githubusercontent.com" },
+    ],
+  },
   async headers() {
     return [
       {
