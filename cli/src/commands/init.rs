@@ -54,67 +54,64 @@ pub fn run() -> Result<()> {
         );
     }
 
-    // Step 2: Skill references
-    let lockfile = Lockfile::load(&root)?;
-    let skill_names: Vec<&String> = lockfile.packages.keys().collect();
-
-    if !skill_names.is_empty() && agents_path.exists() {
-        println!(
-            "  You have {} installed skill(s):",
-            skill_names.len().to_string().cyan()
-        );
-        for name in &skill_names {
-            let desc = lockfile
-                .packages
-                .get(*name)
-                .and_then(|p| p.description.as_deref())
-                .unwrap_or("");
-            if desc.is_empty() {
-                println!("    {}", name.cyan());
-            } else {
-                // Truncate long descriptions
-                let short = if desc.len() > 70 {
-                    format!("{}...", &desc[..67])
-                } else {
-                    desc.to_string()
-                };
-                println!("    {} — {}", name.cyan(), short);
-            }
-        }
-        println!();
-
+    // Step 2: Skill discovery instructions
+    if agents_path.exists() {
         let existing_content = fs::read_to_string(&agents_path).unwrap_or_default();
-        let has_skill_refs = skill_names
-            .iter()
-            .any(|n| {
-                let stripped = n.strip_prefix('@').unwrap_or(n);
-                existing_content.contains(&format!("@skill:{}", stripped))
-            });
+        let has_apm_block = existing_content.contains(APM_BLOCK_START);
 
-        if has_skill_refs {
+        if has_apm_block {
             println!(
-                "  {} Skill references already present in AGENTS.md\n",
+                "  {} Skill resolution block already present in AGENTS.md\n",
                 "✓".green()
             );
         } else if confirm(
-            "Add skill references to AGENTS.md?",
-            "@skill:scope/name tells agents which installed skills to load.\n  Agents read these references and load the corresponding SKILL.md files.",
+            "Teach agents how to use installed skills?",
+            "Adds the @skill: resolution syntax and a link to the APM spec to AGENTS.md.\n  Without this, agents can't find or load skills installed by APM.",
         )? {
-            inject_skill_refs(&agents_path, &skill_names)?;
+            inject_skill_discovery(&agents_path)?;
             println!(
-                "  {} Added @skill references to {}\n",
+                "  {} Added skill resolution block to {}\n",
                 "✓".green(),
                 "AGENTS.md".cyan()
             );
         } else {
             println!();
         }
-    } else if skill_names.is_empty() {
-        println!(
-            "  {} No skills installed yet. Run {} to get started.\n",
-            "·".dimmed(),
-            "apm search <query>".cyan()
-        );
+
+        // Show installed skills summary
+        let lockfile = Lockfile::load(&root)?;
+        let skill_names: Vec<&String> = lockfile.packages.keys().collect();
+
+        if !skill_names.is_empty() {
+            println!(
+                "  {} installed skill(s) in apm-lock.json:",
+                skill_names.len().to_string().cyan()
+            );
+            for name in &skill_names {
+                let desc = lockfile
+                    .packages
+                    .get(*name)
+                    .and_then(|p| p.description.as_deref())
+                    .unwrap_or("");
+                if desc.is_empty() {
+                    println!("    {}", name.cyan());
+                } else {
+                    let short = if desc.len() > 70 {
+                        format!("{}...", &desc[..67])
+                    } else {
+                        desc.to_string()
+                    };
+                    println!("    {} — {}", name.cyan(), short);
+                }
+            }
+            println!();
+        } else {
+            println!(
+                "  {} No skills installed yet. Run {} to get started.\n",
+                "·".dimmed(),
+                "apm search <query>".cyan()
+            );
+        }
     }
 
     // Step 3: Detect agent configs and offer to wire them up
@@ -125,7 +122,7 @@ pub fn run() -> Result<()> {
         }
 
         let content = fs::read_to_string(&config_path).unwrap_or_default();
-        if content.contains("AGENTS.md") {
+        if content.contains(APM_BLOCK_START) || content.contains("AGENTS.md") {
             println!(
                 "  {} {} already references AGENTS.md\n",
                 "✓".green(),
@@ -135,10 +132,10 @@ pub fn run() -> Result<()> {
         }
 
         if confirm(
-            &format!("Detected {} — add a reference to AGENTS.md in {}?", filename, filename),
+            &format!("Wire {} → AGENTS.md?", filename),
             &format!(
-                "This tells {} to read AGENTS.md, which links to your installed skills.",
-                agent_name
+                "{} reads {} but not AGENTS.md directly.\n  This reference completes the chain: {} → AGENTS.md → skills.",
+                agent_name, filename, filename
             ),
         )? {
             inject_agents_ref(&config_path, filename)?;
@@ -159,7 +156,7 @@ pub fn run() -> Result<()> {
     );
     println!(
         "  Learn more: {}\n",
-        "https://apm.orthg.nl/docs/skill-references".dimmed()
+        "https://apm.orthg.nl/docs/at-skill-spec".dimmed()
     );
 
     Ok(())
@@ -184,22 +181,21 @@ fn confirm(question: &str, explanation: &str) -> Result<bool> {
     }
 }
 
-fn inject_skill_refs(agents_path: &Path, skill_names: &[&String]) -> Result<()> {
+fn inject_skill_discovery(agents_path: &Path) -> Result<()> {
     let mut content = fs::read_to_string(agents_path)?;
 
     if !content.ends_with('\n') {
         content.push('\n');
     }
 
-    content.push_str(&format!("\n{}\n", APM_BLOCK_START));
-    content.push_str("## Installed Skills\n\n");
-
-    for name in skill_names {
-        let stripped = name.strip_prefix('@').unwrap_or(name);
-        content.push_str(&format!("@skill:{}\n", stripped));
-    }
-
-    content.push_str(&format!("\n{}\n", APM_BLOCK_END));
+    content.push_str(&format!(
+        "\n{}\n\
+        ## Installed Skills\n\
+        \n\
+        See .skills/apm/init/SKILL.md for the APM skill specification.\n\
+        \n{}\n",
+        APM_BLOCK_START, APM_BLOCK_END
+    ));
 
     fs::write(agents_path, content)?;
     Ok(())
@@ -212,7 +208,12 @@ fn inject_agents_ref(config_path: &Path, _filename: &str) -> Result<()> {
         content.push('\n');
     }
 
-    content.push_str("\nSee [AGENTS.md](./AGENTS.md) for installed agent skills.\n");
+    content.push_str(&format!(
+        "\n{}\n\
+        See [AGENTS.md](./AGENTS.md) for installed agent skills.\n\
+        {}\n",
+        APM_BLOCK_START, APM_BLOCK_END
+    ));
 
     fs::write(config_path, content)?;
     Ok(())
