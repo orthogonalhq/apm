@@ -186,10 +186,14 @@ nav[data-fd-nav] {
 }
 
 /* Code blocks */
-pre {
+.prose pre,
+[data-fd-codeblock] pre {
   background: #141414 !important;
   border: 1px solid #222222 !important;
   border-radius: 6px;
+  padding: 0.875rem 1rem;
+  margin: 1.25rem 0;
+  overflow-x: auto;
 }
 
 code {
@@ -197,12 +201,14 @@ code {
   font-size: 0.875em;
 }
 
+/* Inline code */
 :not(pre) > code {
   background: rgba(250, 93, 43, 0.08);
   color: #FA8E2E;
-  padding: 0.125em 0.375em;
+  padding: 0.15em 0.4em;
   border-radius: 4px;
   border: 1px solid rgba(250, 93, 43, 0.15);
+  font-size: 0.85em;
 }
 
 /* Callout/admonition styling */
