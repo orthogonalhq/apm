@@ -25,8 +25,9 @@ export default function Layout({ children }: { children: ReactNode }) {
       }}
       links={[
         {
-          text: "Registry",
-          url: "https://apm.orthg.nl",
+          text: "Agent Package Registry",
+          url: "https://apm.orthg.nl/packages",
+          external: true,
         },
       ]}
     >

@@ -8,6 +8,7 @@ import {
 import { notFound } from "next/navigation";
 import defaultMdxComponents from "fumadocs-ui/mdx";
 import { createRelativeLink } from "fumadocs-ui/mdx";
+import { Callout } from "@/components/callout";
 import type { Metadata } from "next";
 
 export default async function Page(props: {
@@ -28,6 +29,7 @@ export default async function Page(props: {
           components={{
             ...defaultMdxComponents,
             a: createRelativeLink(source, page),
+            Callout,
           }}
         />
       </DocsBody>
