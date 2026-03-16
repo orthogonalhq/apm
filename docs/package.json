@@ -13,6 +13,7 @@
     "fumadocs-core": "^15",
     "fumadocs-mdx": "^11",
     "fumadocs-ui": "^15",
+    "geist": "^1.7.0",
     "next": "^15",
     "react": "^19",
     "react-dom": "^19"
