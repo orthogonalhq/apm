@@ -18,11 +18,15 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    /// Install a skill by scoped name (e.g. @anthropics/code-review)
+    /// Install a skill by scoped name, or restore all from lockfile
+    #[command(alias = "i")]
     Install {
-        /// Scoped package name (@scope/name)
-        package: String,
+        /// Scoped package name (@scope/name). Omit to install all from lockfile.
+        package: Option<String>,
     },
+    /// Update all installed skills to their latest versions
+    #[command(alias = "up")]
+    Update,
     /// Search for skills
     Search {
         /// Search query
@@ -30,6 +34,12 @@ enum Commands {
     },
     /// Show details about a skill
     Info {
+        /// Scoped package name (@scope/name)
+        package: String,
+    },
+    /// Uninstall a skill by scoped name (e.g. @anthropics/code-review)
+    #[command(alias = "u")]
+    Uninstall {
         /// Scoped package name (@scope/name)
         package: String,
     },
@@ -58,14 +68,22 @@ async fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
-        Commands::Install { package } => {
-            let (scope, name) = parse_scoped_name(&package)?;
-            commands::install::run(&cli.registry, &scope, &name).await
-        }
+        Commands::Install { package } => match package {
+            Some(pkg) => {
+                let (scope, name) = parse_scoped_name(&pkg)?;
+                commands::install::run_one(&cli.registry, &scope, &name).await
+            }
+            None => commands::install::run_all(&cli.registry).await,
+        },
+        Commands::Update => commands::update::run(&cli.registry).await,
         Commands::Search { query } => commands::search::run(&cli.registry, &query).await,
         Commands::Info { package } => {
             let (scope, name) = parse_scoped_name(&package)?;
             commands::info::run(&cli.registry, &scope, &name).await
+        }
+        Commands::Uninstall { package } => {
+            let (scope, name) = parse_scoped_name(&package)?;
+            commands::uninstall::run(&scope, &name)
         }
         Commands::Validate { path } => commands::validate::run(&path),
     }
