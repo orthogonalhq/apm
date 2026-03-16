@@ -5,11 +5,13 @@ import Link from "next/link";
 import { PanelBar } from "@/components/panel-bar";
 import { InstallTabs } from "@/components/install-tabs";
 import { EcosystemGrid } from "@/components/ecosystem-grid";
+import { ScopeLink } from "@/components/scope-link";
+import { VerifiedBadge } from "@/components/verified-badge";
 import type { Metadata } from "next";
 
 const BASE_URL = process.env.VERCEL_URL
   ? `https://${process.env.VERCEL_URL}`
-  : "https://apm.sh";
+  : "https://apm.orthg.nl";
 
 export const metadata: Metadata = {
   title: "APM — Discover Agent Skills for AI Agents",
@@ -21,6 +23,12 @@ export const metadata: Metadata = {
       "The open registry for agent skills. Discover and install production-ready skills, workflows, and apps for 34+ AI agent products.",
     url: BASE_URL,
     type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "APM — Discover Agent Skills for AI Agents",
+    description:
+      "The open registry for agent skills. Discover and install production-ready skills, workflows, and apps for 34+ AI agent products.",
   },
 };
 
@@ -257,14 +265,10 @@ export default async function HomePage() {
                                         <div className="flex items-start justify-between gap-4">
                                             <div className="min-w-0">
                                                 <div className="flex items-center gap-2">
-                                                    <span className="font-mono text-sm t-card-title group-hover:text-accent transition-colors">
-                                                        <span className="t-meta">@{pkg.scope}/</span>{pkg.name}
+                                                    <span className="font-mono text-sm t-card-title">
+                                                        <ScopeLink scope={pkg.scope} className="t-meta" />{pkg.name}
                                                     </span>
-                                                    {pkg.verified && (
-                                                        <span className="text-accent text-[10px]">
-                                                            &#x2713;
-                                                        </span>
-                                                    )}
+                                                    {pkg.verified && <VerifiedBadge />}
                                                     <span
                                                         className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-mono uppercase tracking-wider border ${kindColors[pkg.kind ?? "skill"] ?? "bg-white/5 text-white/40 border-white/10"}`}
                                                     >

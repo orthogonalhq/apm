@@ -1,6 +1,6 @@
 const BASE_URL = process.env.VERCEL_URL
   ? `https://${process.env.VERCEL_URL}`
-  : "https://apm.sh";
+  : "https://apm.orthg.nl";
 
 export default function robots() {
   return {

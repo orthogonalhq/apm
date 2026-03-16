@@ -7,7 +7,7 @@ import "./globals.css";
 
 const BASE_URL = process.env.VERCEL_URL
   ? `https://${process.env.VERCEL_URL}`
-  : "https://apm.sh";
+  : "https://apm.orthg.nl";
 
 const ibmPlexMono = IBM_Plex_Mono({
   variable: "--font-ibm-plex-mono",
@@ -16,17 +16,36 @@ const ibmPlexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(BASE_URL),
   title: {
     default: "APM — Discover Agent Skills for AI Agents",
     template: "%s — APM",
   },
   description:
     "Discover and install agent skills for code review, testing, deployment, and more. The open registry for SKILL.md — production-ready skills for 34+ AI agent products.",
+  alternates: {
+    languages: {
+      "en": BASE_URL,
+      "x-default": BASE_URL,
+    },
+  },
   openGraph: {
     title: "APM — Discover Agent Skills for AI Agents",
     description:
       "Discover and install agent skills for code review, testing, deployment, and more. The open registry for SKILL.md — production-ready skills for 34+ AI agent products.",
+    url: BASE_URL,
+    siteName: "APM",
+    locale: "en_US",
     type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "APM — Discover Agent Skills for AI Agents",
+    description:
+      "Discover and install agent skills for code review, testing, deployment, and more. The open registry for SKILL.md — production-ready skills for 34+ AI agent products.",
+  },
+  other: {
+    "application-name": "APM",
   },
 };
 

@@ -13,10 +13,10 @@ const TABS: { key: Platform; label: string }[] = [
 ];
 
 const COMMANDS: Record<Platform, string> = {
-  macos: "brew install orthogonal/tap/apm",
+  macos: "brew install orthogonalhq/apm/apm",
   windows: "winget install Orthogonal.APM",
-  linux: "curl -fsSL https://apm.sh/install | sh",
-  npm: "npm install -g @orthogonal/apm",
+  linux: "curl -fsSL https://apm.orthg.nl/install.sh | sh",
+  npm: "npm install -g @apm-cli/apm",
 };
 
 function CopyIcon() {

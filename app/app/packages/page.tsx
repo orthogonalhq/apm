@@ -9,7 +9,7 @@ import type { PackageKind } from "@apm/types";
 
 const BASE_URL = process.env.VERCEL_URL
   ? `https://${process.env.VERCEL_URL}`
-  : "https://apm.sh";
+  : "https://apm.orthg.nl";
 
 export async function generateMetadata({
   searchParams,
@@ -21,21 +21,35 @@ export async function generateMetadata({
   if (q) {
     const topic = q.trim();
     const langSuffix = language && language !== "en" ? ` (${language})` : "";
+    const title = `Agent skills for ${topic}${langSuffix}`;
+    const description = `Discover and install agent skills for ${topic}. Browse the APM registry for production-ready skills, workflows, and apps for AI agents.`;
     return {
-      title: `Agent skills for ${topic}${langSuffix}`,
-      description: `Discover and install agent skills for ${topic}. Browse the APM registry for production-ready skills, workflows, and apps for AI agents.`,
+      title,
+      description,
       openGraph: {
-        title: `Agent skills for ${topic}${langSuffix} — APM`,
-        description: `Find agent skills for ${topic} — installable across 34+ AI agent products.`,
+        title: `${title} — APM`,
+        description,
+      },
+      twitter: {
+        card: "summary_large_image",
+        title: `${title} — APM`,
+        description,
       },
     };
   }
 
   const qualifiers = [kind, category, language].filter(Boolean).join(" ");
   if (qualifiers) {
+    const title = `${qualifiers} agent skills`;
+    const description = `Browse ${qualifiers} agent skills in the APM registry — discover, install, and share skills for AI agents.`;
     return {
-      title: `${qualifiers} agent skills`,
-      description: `Browse ${qualifiers} agent skills in the APM registry — discover, install, and share skills for AI agents.`,
+      title,
+      description,
+      twitter: {
+        card: "summary_large_image",
+        title: `${title} — APM`,
+        description,
+      },
     };
   }
 
@@ -43,6 +57,12 @@ export async function generateMetadata({
     title: "Agent Skills",
     description:
       "Browse and search the APM registry — discover agent skills, workflows, and apps for AI agents.",
+    twitter: {
+      card: "summary_large_image",
+      title: "Agent Skills — APM",
+      description:
+        "Browse and search the APM registry — discover agent skills, workflows, and apps for AI agents.",
+    },
   };
 }
 
