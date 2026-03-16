@@ -24,6 +24,8 @@ enum Commands {
         /// Scoped package name (@scope/name). Omit to install all from lockfile.
         package: Option<String>,
     },
+    /// Set up APM for your project — creates AGENTS.md and wires up agent configs
+    Init,
     /// Update all installed skills to their latest versions
     #[command(alias = "up")]
     Update,
@@ -75,6 +77,7 @@ async fn main() -> anyhow::Result<()> {
             }
             None => commands::install::run_all(&cli.registry).await,
         },
+        Commands::Init => commands::init::run(),
         Commands::Update => commands::update::run(&cli.registry).await,
         Commands::Search { query } => commands::search::run(&cli.registry, &query).await,
         Commands::Info { package } => {
