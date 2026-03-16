@@ -38,9 +38,7 @@ apm install
 1. Fetches package metadata from the registry (`/api/packages/@scope/name`)
 2. Creates `.skills/@scope/name/` in your project root
 3. Writes the `SKILL.md` file
-4. Updates `apm-lock.json` with the package source, path, ref, and commit SHA
-5. Regenerates `SKILLS.md` (the skill index)
-6. Creates `AGENTS.md` if it doesn't exist, or injects a skills reference if it does
+4. Updates `apm-lock.json` with the package source, ref, description, kind, and tags
 
 When run without arguments, installs all packages listed in `apm-lock.json`.
 
@@ -58,8 +56,6 @@ apm Installed @anthropics/code-review to .skills/anthropics/code-review
 
 ```
 your-project/
-├── AGENTS.md
-├── SKILLS.md
 ├── apm-lock.json
 └── .skills/
     └── anthropics/
@@ -67,7 +63,7 @@ your-project/
             └── SKILL.md
 ```
 
-See [AGENTS.md & SKILLS.md](/docs/agents-md) for details on how these files work.
+See [Skill References](/docs/agents-md) for how to expose installed skills to AI agents.
 
 ## `apm search`
 
@@ -157,8 +153,7 @@ apm update
 1. Reads all packages from `apm-lock.json`
 2. Fetches the latest version of each from the registry
 3. Overwrites the local `SKILL.md` files
-4. Updates the lockfile
-5. Regenerates `SKILLS.md`
+4. Updates the lockfile with latest metadata
 
 **Example:**
 
@@ -213,24 +208,26 @@ $ apm validate ./bad-skill
 
 ## Lockfile
 
-APM maintains an `apm-lock.json` file at your project root. It tracks installed packages by their scoped name:
+APM maintains an `apm-lock.json` file at your project root. Since v2, it includes skill metadata (description, kind, tags) alongside source tracking:
 
 ```json
 {
-  "lockfileVersion": 1,
+  "lockfileVersion": 2,
   "packages": {
     "@anthropics/code-review": {
-      "sourceRepo": "anthropics/skills",
-      "sourcePath": "code-review",
+      "sourceRepo": "anthropics/knowledge-work-plugins",
+      "sourcePath": "engineering/skills/code-review/SKILL.md",
       "sourceRef": "main",
       "commitSha": "abc123...",
-      "integrity": null
+      "description": "Review code changes for security, performance, and correctness.",
+      "kind": "skill",
+      "tags": ["code-review", "security"]
     }
   }
 }
 ```
 
-The lockfile ensures reproducible installs. Commit it to version control.
+The lockfile ensures reproducible installs and serves as the skill index. Commit it to version control. See [Skill References](/docs/agents-md) for how to expose skills to agents.
 
 ## Environment variables
 

@@ -1,5 +1,4 @@
 use crate::lockfile::Lockfile;
-use crate::manifest;
 use crate::types::PackageResponse;
 use anyhow::{Context, Result};
 use colored::Colorize;
@@ -70,23 +69,64 @@ pub async fn run(registry: &str) -> Result<()> {
             .with_context(|| format!("Failed to create {}", skills_dir.display()))?;
         fs::write(skills_dir.join("SKILL.md"), &pkg.skill_md_raw)?;
 
+        let (description, kind, tags) = parse_frontmatter_metadata(&pkg.skill_md_raw);
+
         lockfile.add_package(
             full_name,
             &pkg.source_repo,
             &pkg.source_path,
             &pkg.source_ref,
             None,
+            description.as_deref(),
+            kind.as_deref(),
+            tags,
         );
 
         println!(" {}", "✓".green());
     }
 
     lockfile.save(&root)?;
-
-    // Regenerate SKILLS.md
-    let entries = manifest::build_entries_from_lockfile(&root)?;
-    manifest::regenerate_skills_md(&root, &entries)?;
-
     println!("{} All packages updated", "apm".green().bold());
     Ok(())
+}
+
+/// Extract description, kind, and tags from SKILL.md frontmatter.
+fn parse_frontmatter_metadata(content: &str) -> (Option<String>, Option<String>, Vec<String>) {
+    let trimmed = content.trim_start();
+    if !trimmed.starts_with("---") {
+        return (None, None, Vec::new());
+    }
+    let after_first = &trimmed[3..];
+    let end = match after_first.find("---") {
+        Some(e) => e,
+        None => return (None, None, Vec::new()),
+    };
+    let fm = &after_first[..end];
+
+    let yaml: serde_yaml::Value = match serde_yaml::from_str(fm) {
+        Ok(v) => v,
+        Err(_) => return (None, None, Vec::new()),
+    };
+
+    let description = yaml
+        .get("description")
+        .and_then(|v| v.as_str())
+        .map(String::from);
+
+    let kind = yaml
+        .get("kind")
+        .and_then(|v| v.as_str())
+        .map(String::from);
+
+    let tags = yaml
+        .get("tags")
+        .and_then(|v| v.as_sequence())
+        .map(|seq| {
+            seq.iter()
+                .filter_map(|v| v.as_str().map(String::from))
+                .collect()
+        })
+        .unwrap_or_default();
+
+    (description, kind, tags)
 }

@@ -1,5 +1,4 @@
 use crate::lockfile::Lockfile;
-use crate::manifest;
 use anyhow::{Context, Result};
 use colored::Colorize;
 use std::fs;
@@ -26,10 +25,6 @@ pub fn run(scope: &str, name: &str) -> Result<()> {
     let mut lockfile = Lockfile::load(&root)?;
     lockfile.remove_package(&full_name);
     lockfile.save(&root)?;
-
-    // Regenerate SKILLS.md
-    let entries = manifest::build_entries_from_lockfile(&root)?;
-    manifest::regenerate_skills_md(&root, &entries)?;
 
     println!(
         "{} Uninstalled {}",

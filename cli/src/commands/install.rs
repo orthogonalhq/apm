@@ -1,5 +1,4 @@
 use crate::lockfile::Lockfile;
-use crate::manifest;
 use crate::types::PackageResponse;
 use anyhow::{Context, Result};
 use colored::Colorize;
@@ -16,6 +15,8 @@ pub async fn run_one(registry: &str, scope: &str, name: &str) -> Result<()> {
     let skills_dir = root.join(".skills").join(&pkg.scope).join(&pkg.name);
     write_skill(&skills_dir, &pkg)?;
 
+    let (description, kind, tags) = parse_frontmatter_metadata(&pkg.skill_md_raw);
+
     let mut lockfile = Lockfile::load(&root)?;
     lockfile.add_package(
         &full_name,
@@ -23,13 +24,11 @@ pub async fn run_one(registry: &str, scope: &str, name: &str) -> Result<()> {
         &pkg.source_path,
         &pkg.source_ref,
         None,
+        description.as_deref(),
+        kind.as_deref(),
+        tags,
     );
     lockfile.save(&root)?;
-
-    // Regenerate SKILLS.md and ensure AGENTS.md
-    let entries = manifest::build_entries_from_lockfile(&root)?;
-    manifest::regenerate_skills_md(&root, &entries)?;
-    manifest::ensure_agents_md(&root)?;
 
     println!(
         "{} Installed {} to {}",
@@ -84,11 +83,6 @@ pub async fn run_all(registry: &str) -> Result<()> {
         }
     }
 
-    // Regenerate SKILLS.md and ensure AGENTS.md
-    let entries = manifest::build_entries_from_lockfile(&root)?;
-    manifest::regenerate_skills_md(&root, &entries)?;
-    manifest::ensure_agents_md(&root)?;
-
     println!("{} Done", "apm".green().bold());
     Ok(())
 }
@@ -116,4 +110,45 @@ fn write_skill(skills_dir: &std::path::Path, pkg: &PackageResponse) -> Result<()
     let skill_path = skills_dir.join("SKILL.md");
     fs::write(&skill_path, &pkg.skill_md_raw)?;
     Ok(())
+}
+
+/// Extract description, kind, and tags from SKILL.md frontmatter.
+fn parse_frontmatter_metadata(content: &str) -> (Option<String>, Option<String>, Vec<String>) {
+    let trimmed = content.trim_start();
+    if !trimmed.starts_with("---") {
+        return (None, None, Vec::new());
+    }
+    let after_first = &trimmed[3..];
+    let end = match after_first.find("---") {
+        Some(e) => e,
+        None => return (None, None, Vec::new()),
+    };
+    let fm = &after_first[..end];
+
+    let yaml: serde_yaml::Value = match serde_yaml::from_str(fm) {
+        Ok(v) => v,
+        Err(_) => return (None, None, Vec::new()),
+    };
+
+    let description = yaml
+        .get("description")
+        .and_then(|v| v.as_str())
+        .map(String::from);
+
+    let kind = yaml
+        .get("kind")
+        .and_then(|v| v.as_str())
+        .map(String::from);
+
+    let tags = yaml
+        .get("tags")
+        .and_then(|v| v.as_sequence())
+        .map(|seq| {
+            seq.iter()
+                .filter_map(|v| v.as_str().map(String::from))
+                .collect()
+        })
+        .unwrap_or_default();
+
+    (description, kind, tags)
 }
