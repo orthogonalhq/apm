@@ -1,8 +1,212 @@
-@import "tailwindcss";
-@import "fumadocs-ui/css/neutral.css";
-@import "fumadocs-ui/css/preset.css";
+@import 'tailwindcss';
+@import 'fumadocs-ui/css/neutral.css';
+@import 'fumadocs-ui/css/preset.css';
 
 :root {
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --background: #0a0a0a;
+  --foreground: #ffffff;
+  --muted: #888888;
+  --accent: #FA5D2B;
+  --accent-glow: #FA8E2E;
+  --card: #141414;
+  --card-border: #222222;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-card: var(--card);
+  --color-card-border: var(--card-border);
+
+  --font-sans: var(--font-geist);
+  --font-mono: var(--font-ibm-plex-mono);
+}
+
+/* ── Fumadocs dark theme overrides ──────────────────────────────── */
+.dark,
+:root {
+  color-scheme: dark;
+
+  --color-fd-background: #0a0a0a;
+  --color-fd-foreground: hsl(0, 0%, 92%);
+  --color-fd-muted: #1a1a1a;
+  --color-fd-muted-foreground: rgba(255, 255, 255, 0.55);
+  --color-fd-popover: #141414;
+  --color-fd-popover-foreground: rgba(255, 255, 255, 0.90);
+  --color-fd-card: #141414;
+  --color-fd-card-foreground: rgba(255, 255, 255, 0.90);
+  --color-fd-border: rgba(255, 255, 255, 0.08);
+  --color-fd-primary: #FA5D2B;
+  --color-fd-primary-foreground: #000000;
+  --color-fd-secondary: #1a1a1a;
+  --color-fd-secondary-foreground: rgba(255, 255, 255, 0.85);
+  --color-fd-accent: rgba(250, 93, 43, 0.12);
+  --color-fd-accent-foreground: rgba(255, 255, 255, 0.90);
+  --color-fd-ring: #FA5D2B;
+  --color-fd-overlay: rgba(0, 0, 0, 0.5);
+}
+
+.dark #nd-sidebar {
+  --color-fd-muted: #141414;
+  --color-fd-secondary: #1a1a1a;
+  --color-fd-muted-foreground: rgba(255, 255, 255, 0.55);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+/* ── Accent gradient utilities ──────────────────────────────────── */
+.accent-gradient {
+  background: linear-gradient(135deg, #FA8E2E, #FA5D2B);
+}
+
+.accent-gradient-text {
+  background: linear-gradient(135deg, #FA8E2E, #FA5D2B);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ── Typography tokens ──────────────────────────────────────────── */
+@layer components {
+  .t-hero-head    { color: rgb(255 255 255 / 0.93); }
+  .t-section-head { color: rgb(255 255 255 / 0.85); }
+  .t-card-title   { color: rgb(255 255 255 / 0.90); }
+  .t-body         { color: rgb(255 255 255 / 0.62); }
+  .t-card-desc    { color: rgb(255 255 255 / 0.55); }
+  .t-nav          { color: rgb(255 255 255 / 0.45); }
+  .t-sub-label    { color: rgb(255 255 255 / 0.38); }
+  .t-meta         { color: rgb(255 255 255 / 0.34); }
+  .t-ghost        { color: rgb(255 255 255 / 0.22); }
+}
+
+/* ── Text selection ─────────────────────────────────────────────── */
+::selection {
+  background: #c23e0af9;
+  color: #000000;
+  -webkit-text-fill-color: #000000;
+  text-shadow: none;
+}
+
+/* ── Scrollbar ──────────────────────────────────────────────────── */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.08) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* ── Fumadocs component overrides ───────────────────────────────── */
+
+/* Sidebar styling */
+[data-fd-sidebar] {
+  background: #0a0a0a !important;
+  border-color: #222222 !important;
+}
+
+[data-fd-sidebar] a {
+  color: rgb(255 255 255 / 0.55);
+  font-size: 0.8125rem;
+}
+
+[data-fd-sidebar] a:hover,
+[data-fd-sidebar] a[data-active="true"] {
+  color: rgb(255 255 255 / 0.90);
+}
+
+[data-fd-sidebar] a[data-active="true"] {
+  background: rgba(250, 93, 43, 0.08);
+  border-left: 2px solid var(--accent);
+}
+
+/* Nav header */
+nav[data-fd-nav] {
+  background: rgba(10, 10, 10, 0.85) !important;
+  backdrop-filter: blur(12px);
+  border-color: #222222 !important;
+}
+
+/* TOC (table of contents) */
+[data-fd-toc] a {
+  color: rgb(255 255 255 / 0.38);
+  font-size: 0.8125rem;
+}
+
+[data-fd-toc] a:hover {
+  color: rgb(255 255 255 / 0.62);
+}
+
+[data-fd-toc] a[data-active="true"] {
+  color: var(--accent);
+}
+
+/* Search dialog */
+[data-fd-search] {
+  background: #141414 !important;
+  border-color: #222222 !important;
+}
+
+/* Prose / MDX content overrides */
+.prose {
+  --tw-prose-body: rgb(255 255 255 / 0.62);
+  --tw-prose-headings: rgb(255 255 255 / 0.90);
+  --tw-prose-links: #FA5D2B;
+  --tw-prose-bold: rgb(255 255 255 / 0.85);
+  --tw-prose-code: rgb(255 255 255 / 0.85);
+  --tw-prose-quotes: rgb(255 255 255 / 0.55);
+  --tw-prose-quote-borders: #FA5D2B;
+  --tw-prose-counters: rgb(255 255 255 / 0.38);
+  --tw-prose-bullets: rgb(255 255 255 / 0.28);
+  --tw-prose-hr: #222222;
+  --tw-prose-th-borders: #333333;
+  --tw-prose-td-borders: #222222;
+  --tw-prose-pre-bg: #141414;
+  --tw-prose-pre-code: rgb(255 255 255 / 0.85);
+  --tw-prose-captions: rgb(255 255 255 / 0.38);
+}
+
+/* Code blocks */
+pre {
+  background: #141414 !important;
+  border: 1px solid #222222 !important;
+  border-radius: 6px;
+}
+
+code {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 0.875em;
+}
+
+:not(pre) > code {
+  background: rgba(250, 93, 43, 0.08);
+  color: #FA8E2E;
+  padding: 0.125em 0.375em;
+  border-radius: 4px;
+  border: 1px solid rgba(250, 93, 43, 0.15);
+}
+
+/* Callout/admonition styling */
+[data-fd-callout] {
+  border-color: rgba(250, 93, 43, 0.2) !important;
+  background: rgba(250, 93, 43, 0.04) !important;
 }
