@@ -29,6 +29,20 @@
       "when": 1773592837891,
       "tag": "0003_simple_deathbird",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1773697389384,
+      "tag": "0004_burly_ted_forrester",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1773699296611,
+      "tag": "0005_first_solo",
+      "breakpoints": true
     }
   ]
 }
