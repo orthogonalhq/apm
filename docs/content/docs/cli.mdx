@@ -21,12 +21,16 @@ All packages use scoped names in the format `@scope/name`. The scope is typicall
 @myorg/internal-guidelines
 ```
 
-## `apm install`
+## `apm install` (alias: `apm i`)
 
-Install a skill by scoped name from the registry.
+Install a skill by scoped name, or restore all from lockfile.
 
 ```bash
+# Install a single skill
 apm install @scope/name
+
+# Restore all skills from lockfile
+apm install
 ```
 
 **What it does:**
@@ -35,6 +39,10 @@ apm install @scope/name
 2. Creates `.skills/@scope/name/` in your project root
 3. Writes the `SKILL.md` file
 4. Updates `apm-lock.json` with the package source, path, ref, and commit SHA
+5. Regenerates `SKILLS.md` (the skill index)
+6. Creates `AGENTS.md` if it doesn't exist, or injects a skills reference if it does
+
+When run without arguments, installs all packages listed in `apm-lock.json`.
 
 **Project root detection:** APM walks up from the current directory looking for `apm-lock.json`, `package.json`, `Cargo.toml`, or `.git`. Falls back to the current directory.
 
@@ -43,19 +51,23 @@ apm install @scope/name
 ```bash
 $ apm install @anthropics/code-review
 apm Fetching @anthropics/code-review...
-apm Installed @anthropics/code-review to .skills/@anthropics/code-review
+apm Installed @anthropics/code-review to .skills/anthropics/code-review
 ```
 
 **Result:**
 
 ```
 your-project/
-├── .skills/
-│   └── @anthropics/
-│       └── code-review/
-│           └── SKILL.md
-└── apm-lock.json
+├── AGENTS.md
+├── SKILLS.md
+├── apm-lock.json
+└── .skills/
+    └── anthropics/
+        └── code-review/
+            └── SKILL.md
 ```
+
+See [AGENTS.md & SKILLS.md](/docs/agents-md) for details on how these files work.
 
 ## `apm search`
 
@@ -108,6 +120,55 @@ $ apm info @anthropics/code-review
 
   Install:
   apm install @anthropics/code-review
+```
+
+## `apm uninstall` (alias: `apm u`)
+
+Remove an installed skill.
+
+```bash
+apm uninstall @scope/name
+```
+
+**What it does:**
+
+1. Removes `.skills/@scope/name/` directory
+2. Cleans up empty scope directories
+3. Removes the entry from `apm-lock.json`
+4. Regenerates `SKILLS.md`
+
+**Example:**
+
+```bash
+$ apm uninstall @anthropics/code-review
+apm Uninstalled @anthropics/code-review
+```
+
+## `apm update` (alias: `apm up`)
+
+Re-fetch latest versions for all installed skills.
+
+```bash
+apm update
+```
+
+**What it does:**
+
+1. Reads all packages from `apm-lock.json`
+2. Fetches the latest version of each from the registry
+3. Overwrites the local `SKILL.md` files
+4. Updates the lockfile
+5. Regenerates `SKILLS.md`
+
+**Example:**
+
+```bash
+$ apm update
+apm Updating 3 package(s)...
+  ↑ @anthropics/code-review... ✓
+  ↑ @cloudflare/code-review... ✓
+  ↑ @microsoft/code-review... ✓
+apm All packages updated
 ```
 
 ## `apm validate`

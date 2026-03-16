@@ -1,4 +1,5 @@
 use crate::lockfile::Lockfile;
+use crate::manifest;
 use crate::types::PackageResponse;
 use anyhow::{Context, Result};
 use colored::Colorize;
@@ -81,6 +82,11 @@ pub async fn run(registry: &str) -> Result<()> {
     }
 
     lockfile.save(&root)?;
+
+    // Regenerate SKILLS.md
+    let entries = manifest::build_entries_from_lockfile(&root)?;
+    manifest::regenerate_skills_md(&root, &entries)?;
+
     println!("{} All packages updated", "apm".green().bold());
     Ok(())
 }

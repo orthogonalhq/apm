@@ -3,6 +3,7 @@
   "pages": [
     "index",
     "what-is-skill-md",
+    "agents-md",
     "composite-skills",
     "cli",
     "registry",

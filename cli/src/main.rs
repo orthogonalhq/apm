@@ -1,5 +1,6 @@
 mod commands;
 mod lockfile;
+mod manifest;
 mod types;
 mod validator;
 

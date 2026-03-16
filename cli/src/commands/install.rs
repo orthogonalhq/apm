@@ -1,4 +1,5 @@
 use crate::lockfile::Lockfile;
+use crate::manifest;
 use crate::types::PackageResponse;
 use anyhow::{Context, Result};
 use colored::Colorize;
@@ -24,6 +25,11 @@ pub async fn run_one(registry: &str, scope: &str, name: &str) -> Result<()> {
         None,
     );
     lockfile.save(&root)?;
+
+    // Regenerate SKILLS.md and ensure AGENTS.md
+    let entries = manifest::build_entries_from_lockfile(&root)?;
+    manifest::regenerate_skills_md(&root, &entries)?;
+    manifest::ensure_agents_md(&root)?;
 
     println!(
         "{} Installed {} to {}",
@@ -77,6 +83,11 @@ pub async fn run_all(registry: &str) -> Result<()> {
             }
         }
     }
+
+    // Regenerate SKILLS.md and ensure AGENTS.md
+    let entries = manifest::build_entries_from_lockfile(&root)?;
+    manifest::regenerate_skills_md(&root, &entries)?;
+    manifest::ensure_agents_md(&root)?;
 
     println!("{} Done", "apm".green().bold());
     Ok(())
