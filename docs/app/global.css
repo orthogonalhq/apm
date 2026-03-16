@@ -46,6 +46,10 @@
   --color-fd-accent-foreground: rgba(255, 255, 255, 0.90);
   --color-fd-ring: #FA5D2B;
   --color-fd-overlay: rgba(0, 0, 0, 0.5);
+  --color-fd-info: #3b82f6;
+  --color-fd-warning: #f59e0b;
+  --color-fd-error: #ef4444;
+  --color-fd-success: #22c55e;
 }
 
 .dark #nd-sidebar {
@@ -203,8 +207,3 @@ code {
   border: 1px solid rgba(250, 93, 43, 0.15);
 }
 
-/* Callout/admonition styling */
-[data-fd-callout] {
-  border-color: rgba(250, 93, 43, 0.2) !important;
-  background: rgba(250, 93, 43, 0.04) !important;
-}
