@@ -22,12 +22,20 @@ pub struct LockedPackage {
     pub source_ref: String,
     pub commit_sha: Option<String>,
     pub integrity: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub kind: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub dependencies: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub tags: Vec<String>,
 }
 
 impl Lockfile {
     pub fn new() -> Self {
         Lockfile {
-            lockfile_version: 1,
+            lockfile_version: 2,
             packages: BTreeMap::new(),
         }
     }
@@ -67,7 +75,7 @@ impl Lockfile {
 
     pub fn save(&self, root: &Path) -> Result<()> {
         let path = root.join(LOCKFILE_NAME);
-        let content = serde_json::to_string_pretty(self)?;
+        let content = serde_json::to_string_pretty(self)? + "\n";
         std::fs::write(&path, content)?;
         Ok(())
     }
@@ -83,6 +91,10 @@ impl Lockfile {
         source_path: &str,
         source_ref: &str,
         commit_sha: Option<&str>,
+        description: Option<&str>,
+        kind: Option<&str>,
+        dependencies: Vec<String>,
+        tags: Vec<String>,
     ) {
         self.packages.insert(
             name.to_string(),
@@ -92,6 +104,10 @@ impl Lockfile {
                 source_ref: source_ref.to_string(),
                 commit_sha: commit_sha.map(String::from),
                 integrity: None,
+                description: description.map(String::from),
+                kind: kind.map(String::from),
+                dependencies,
+                tags,
             },
         );
     }

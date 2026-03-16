@@ -1,0 +1,135 @@
+---
+title: Setting Up Skill Discovery
+description: How to connect installed skills to your AI agents using apm init
+---
+
+You've installed skills with APM. They live in `.skills/`. Now you need to tell your agents they exist.
+
+This guide walks through the setup. For the formal syntax and resolution rules, see the [`@skill:` Specification](/docs/at-skill-spec).
+
+## Quick setup with `apm init`
+
+```bash
+apm init
+```
+
+This interactive command handles everything:
+
+1. **Creates `AGENTS.md`** at project root if it doesn't exist — a place for project-specific agent instructions
+2. **Adds the `@apm/init` skill reference** to `AGENTS.md` so agents know how to resolve skills
+3. **Detects agent config files** (`CLAUDE.md`, `.cursorrules`, `GEMINI.md`, `.github/copilot-instructions.md`, `.windsurfrules`) and offers to wire them up
+
+Every step prompts for confirmation and explains what it's doing. Say `n` to skip any step.
+
+## What `apm init` creates
+
+### AGENTS.md
+
+Your project instructions file with a reference to the locally installed `@apm/init` skill:
+
+```markdown
+# Agent Configuration
+
+<!-- Add project-specific instructions for AI agents here -->
+
+<!-- apm:skills -->
+## Installed Skills
+
+See .skills/apm/init/SKILL.md for the APM skill specification.
+<!-- /apm:skills -->
+```
+
+The `<!-- apm:skills -->` markers delimit the section managed by APM. Your content outside these markers is never touched. Add project context, coding standards, and architecture notes above the block.
+
+The `@apm/init` skill is installed locally — no URL fetch needed. It contains the `@skill:` resolution rule and a routing table for searching and installing skills.
+
+### Agent config references
+
+For each detected agent config file, `apm init` appends:
+
+```markdown
+<!-- apm:skills -->
+See [AGENTS.md](./AGENTS.md) for installed agent skills.
+<!-- /apm:skills -->
+```
+
+This creates a reference chain so the agent discovers your skills:
+
+```
+Agent reads CLAUDE.md (or equivalent)
+  → sees "See AGENTS.md"
+    → reads AGENTS.md, finds reference to .skills/apm/init/SKILL.md
+      → reads the spec skill, learns @skill: resolution + available skills
+```
+
+## Manual setup
+
+If you prefer to set things up by hand, or `apm init` doesn't cover your agent:
+
+### 1. Add skill references
+
+Add `@skill:` references to any markdown file your agent reads:
+
+```markdown
+@skill:anthropics/code-review
+@skill:myorg/testing-standards
+```
+
+Each reference resolves to `.skills/<scope>/<name>/SKILL.md`. See the [`@skill:` Specification](/docs/at-skill-spec) for the full syntax.
+
+### 2. Wire up your agent
+
+| Agent | Config file | What to add |
+|-------|-------------|-------------|
+| Claude Code | `CLAUDE.md` | `See [AGENTS.md](./AGENTS.md) for installed agent skills.` |
+| Cursor | `.cursorrules` or `.cursor/rules/` | `See [AGENTS.md](./AGENTS.md) for installed agent skills.` |
+| GitHub Copilot | `.github/copilot-instructions.md` | `See [AGENTS.md](./AGENTS.md) for installed agent skills.` |
+| Gemini CLI | `GEMINI.md` | `See [AGENTS.md](./AGENTS.md) for installed agent skills.` |
+| Windsurf | `.windsurfrules` | `See [AGENTS.md](./AGENTS.md) for installed agent skills.` |
+
+For agents that read `AGENTS.md` natively (Codex, Cursor, Copilot, Gemini CLI, Windsurf, and others — see [State of AGENTS.md](/docs/state-of-agents-md)), no extra wiring is needed.
+
+## How agents resolve skills today
+
+No agent natively understands `@skill:` yet. The current flow relies on agents following file references — which all agents already do:
+
+1. Agent reads its config file (`CLAUDE.md`, `.cursorrules`, etc.)
+2. Config file references `AGENTS.md`
+3. Agent reads `AGENTS.md`, finds reference to `.skills/apm/init/SKILL.md`
+4. Agent reads the spec skill — learns the resolution rule and available skill tracks
+5. Agent resolves `@skill:` references as encountered → `.skills/<scope>/<name>/SKILL.md`
+
+Skills are only loaded when relevant — never all at once.
+
+## Project structure
+
+After running `apm init` on a project with two installed skills:
+
+```
+your-project/
+├── CLAUDE.md              # → references AGENTS.md
+├── AGENTS.md              # → points to .skills/apm/init/SKILL.md
+├── apm-lock.json          # → skill metadata + lockfile
+└── .skills/
+    ├── apm/
+    │   ├── spec/
+    │   │   └── SKILL.md   # APM spec (resolution rules + routing table)
+    │   ├── search/
+    │   │   └── SKILL.md   # Registry search (loaded on demand)
+    │   └── install/
+    │       └── SKILL.md   # Skill install (loaded on demand)
+    ├── anthropics/
+    │   └── code-review/
+    │       └── SKILL.md
+    └── cloudflare/
+        └── code-review/
+            └── SKILL.md
+```
+
+## Version control
+
+| File | Commit? | Why |
+|------|---------|-----|
+| `apm-lock.json` | Yes | Reproducible installs + skill index |
+| `AGENTS.md` | Yes | Team-shared agent configuration |
+| `.skills/` | Optional | Commit for offline use, or regenerate via `apm install` |

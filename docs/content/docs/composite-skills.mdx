@@ -42,7 +42,7 @@ The workflow says **what to do**. The composite skill says **what judgment to ap
 
 ## Manifest format
 
-A composite skill uses standard SKILL.md frontmatter with an additional `dependencies` field:
+A composite skill uses standard SKILL.md frontmatter with additional `kind` and `dependencies` fields:
 
 ```yaml
 ---
@@ -51,34 +51,22 @@ description: >
   Comprehensive code review judgment composing variable scoping, testing
   patterns, error handling, and architecture reasoning. Use when reviewing
   code changes, pull requests, or conducting quality assessments.
+kind: composite
 dependencies:
-  skills:
-    - name: "@anthropics/variable-scoping"
-      version: "^1.0"
-    - name: "@anthropics/testing-patterns"
-      version: "^1.0"
-    - name: "@anthropics/error-handling"
-      version: "^1.0"
-    - name: "@anthropics/architecture-reasoning"
-      version: "^2.0"
-metadata:
-  version: "1.0.0"
-  nous.skill-tier: composite
+  - "@anthropics/variable-scoping"
+  - "@anthropics/testing-patterns"
+  - "@anthropics/error-handling"
+  - "@anthropics/architecture-reasoning"
 ---
 ```
 
-### `dependencies.skills`
+### `kind`
 
-A list of constituent skill dependencies. Each entry has:
+Explicit skill type: `"composite"` or `"skill"` (default). This is the same field used across the registry database, lockfile, and API responses.
 
-| Field | Required | Description |
-|-------|----------|-------------|
-| `name` | Yes | The scoped package name (`@scope/name`) |
-| `version` | No | Semver range (defaults to `"*"`) |
+### `dependencies`
 
-### `metadata.nous.skill-tier`
-
-Explicit tier declaration: `"composite"` or `"atomic"` (default). This makes the distinction machine-readable for tooling and discovery.
+A flat list of scoped package names that this skill depends on. APM resolves and installs these when the composite skill is installed.
 
 **Rule of thumb:** if a skill has a `dependencies` field, it's composite. If it doesn't, it's atomic.
 
@@ -94,11 +82,11 @@ Composite skill dependencies use the same resolution engine as all APM packages 
 ```bash
 apm install @anthropics/code-review
 # Resolves and installs:
-#   .skills/@anthropics/code-review/SKILL.md              (composite)
-#   .skills/@anthropics/variable-scoping/SKILL.md          (atomic)
-#   .skills/@anthropics/testing-patterns/SKILL.md          (atomic)
-#   .skills/@anthropics/error-handling/SKILL.md             (atomic)
-#   .skills/@anthropics/architecture-reasoning/SKILL.md     (atomic)
+#   .skills/anthropics/code-review/SKILL.md              (composite)
+#   .skills/anthropics/variable-scoping/SKILL.md          (atomic)
+#   .skills/anthropics/testing-patterns/SKILL.md          (atomic)
+#   .skills/anthropics/error-handling/SKILL.md             (atomic)
+#   .skills/anthropics/architecture-reasoning/SKILL.md     (atomic)
 ```
 
 ## Progressive disclosure
@@ -107,11 +95,50 @@ Loading all constituent skills at once would be wasteful. A composite skill with
 
 | Tier | When | Token budget | What loads |
 |------|------|-------------|------------|
-| **Discovery** | Agent scans available skills | ~100 tokens | `name` + `description` |
-| **Activation** | Skill is relevant to current task | < 5,000 tokens | Composite SKILL.md body — the orchestration logic |
-| **Constituent loading** | Specific judgment needed | On demand | Individual atomic skill bodies, per the composite's guidance |
+| **Discovery** | Agent scans available skills | ~100 tokens | `name` + `description` from frontmatter |
+| **Activation** | Skill is relevant to current task | < 5,000 tokens | Composite SKILL.md body — the routing table |
+| **Constituent loading** | Routing table condition matches | On demand | Individual atomic skill bodies |
 
-The composite skill body acts as a **router**. It tells the runtime which constituents to load based on the current context. A code review composite might load `@anthropics/variable-scoping` for a frontend file but `@anthropics/architecture-reasoning` for an infrastructure change.
+The composite skill body acts as a **router**. It contains a routing table that tells the agent which constituents to load based on the current context. The agent never loads all dependencies — only the ones the routing table directs it to.
+
+### Routing table
+
+The routing table is the core of a composite skill's body. It maps trigger conditions to dependencies using a structured table:
+
+| Column | Required | Description |
+|--------|----------|-------------|
+| **When** | Yes | The condition under which this track activates. Natural language the agent matches against. |
+| **Load** | Yes | What to load — a `@skill:` reference or relative file path. |
+| **Ignore** | No | What to explicitly exclude from context. Prevents cross-contamination between tracks. |
+
+The **When** column is free-text. The agent matches it semantically against the current task.
+
+The **Load** column is a `@skill:scope/name` reference (for cross-package dependencies) or a relative file path (for internal sub-entries within the skill directory).
+
+The **Ignore** column is optional but recommended. It prevents agents from loading unrelated tracks into context. For composites with more than a few dependencies, always include it.
+
+#### Two-column table (default)
+
+Use when tracks are independent and don't need isolation:
+
+```markdown
+| When | Load |
+|------|------|
+| Find, discover, or browse skills | `@skill:apm/search` |
+| Install, add, or set up a skill | `@skill:apm/install` |
+```
+
+#### Three-column table (with isolation)
+
+Use when tracks should not read each other's content:
+
+```markdown
+| When | Load | Ignore |
+|------|------|--------|
+| You are the Orchestrator | orchestrator/ENTRY.md | implementation-agent/, review-agent/ |
+| You are the Implementation Agent | implementation-agent/ENTRY.md | orchestrator/, review-agent/ |
+| You are the Gate Review Agent | review-agent/ENTRY.md | orchestrator/, implementation-agent/ |
+```
 
 ## Directory structure
 
@@ -119,7 +146,7 @@ Composite skills use the same directory structure as atomic skills:
 
 ```
 code-review/
-├── SKILL.md          # Frontmatter (with dependencies) + composition instructions
+├── SKILL.md          # Frontmatter (with dependencies) + routing table
 ├── references/       # Optional: composition guidance, domain context
 ├── scripts/          # Optional: executable code
 └── assets/           # Optional: static resources
@@ -129,73 +156,92 @@ code-review/
 
 ## Graceful degradation
 
-Composite skills are structurally valid SKILL.md files. The `dependencies` field is not part of the core agentskills.io spec, but the spec is permissive — unknown frontmatter fields are ignored.
+Composite skills are structurally valid SKILL.md files. The `kind`, `dependencies`, and routing table are not part of the core agentskills.io spec, but the spec is permissive — unknown frontmatter fields are ignored, and the routing table is standard markdown.
 
 This means:
 
-- **APM-aware runtimes** resolve dependencies, install constituents, and load them progressively.
-- **Other agents** see a valid SKILL.md and use the composite's body as standalone guidance. They don't get constituent loading, but they still get the orchestration instructions.
+- **APM-aware runtimes** resolve dependencies, install constituents, and load them via the routing table.
+- **Other agents** see a valid SKILL.md and use the composite's body as standalone guidance. They don't get constituent loading, but they still get the routing instructions as readable text.
 
 No agent breaks. APM-aware agents get the full experience.
 
-## Example
+## Examples
 
-A complete composite skill for code review:
+### Minimal: APM spec
+
+A composite with two independent atomic dependencies:
+
+```markdown
+---
+name: spec
+description: APM skill resolution. Defines how @skill references resolve to installed SKILL.md files.
+kind: composite
+dependencies:
+  - "@apm/search"
+  - "@apm/install"
+---
+
+## Skill resolution
+
+`@skill:<scope>/<name>` resolves to `.skills/<scope>/<name>/SKILL.md`.
+Read and follow the skill's instructions when relevant to the current task.
+If the file does not exist, continue without it.
+
+## Skills
+
+| When | Load |
+|------|------|
+| Find, discover, or browse skills | `@skill:apm/search` |
+| Install, add, or set up a skill | `@skill:apm/install` |
+```
+
+~60 tokens. Two tracks, no isolation needed.
+
+### Full: Code review
+
+A composite with four dependencies and context-dependent routing:
 
 ```markdown
 ---
 name: code-review
 description: >
-  Comprehensive code review judgment composing variable scoping, testing
-  patterns, error handling, and architecture reasoning. Use when reviewing
-  code changes, pull requests, or conducting quality assessments.
+  Comprehensive code review composing variable scoping, testing patterns,
+  error handling, and architecture reasoning. Use when reviewing code
+  changes, pull requests, or conducting quality assessments.
+kind: composite
 dependencies:
-  skills:
-    - name: "@anthropics/variable-scoping"
-      version: "^1.0"
-    - name: "@anthropics/testing-patterns"
-      version: "^1.0"
-    - name: "@anthropics/error-handling"
-      version: "^1.0"
-    - name: "@anthropics/architecture-reasoning"
-      version: "^2.0"
-metadata:
-  version: "1.0.0"
-  nous.skill-tier: composite
+  - "@anthropics/variable-scoping"
+  - "@anthropics/testing-patterns"
+  - "@anthropics/error-handling"
+  - "@anthropics/architecture-reasoning"
 ---
 
-## Code Review Composition
+## Code Review
 
-When reviewing code, apply the following judgment framework:
+Apply the relevant judgment skills based on what is being reviewed.
 
-### For all code changes
+| When | Load | Ignore |
+|------|------|--------|
+| All code changes | `@skill:anthropics/variable-scoping` | |
+| All code changes | `@skill:anthropics/error-handling` | |
+| Backend or infrastructure changes | `@skill:anthropics/architecture-reasoning` | |
+| Backend or infrastructure changes | `@skill:anthropics/testing-patterns` | |
+| Frontend changes | `@skill:anthropics/testing-patterns` | `@skill:anthropics/architecture-reasoning` |
 
-Load and apply:
-- **@anthropics/variable-scoping** — check scope hygiene, unused declarations, mutation patterns
-- **@anthropics/error-handling** — verify error propagation, user-facing messages, logging
+## Judgment weighting
 
-### For backend and infrastructure changes
-
-Additionally load:
-- **@anthropics/architecture-reasoning** — evaluate system boundaries, coupling, data flow
-- **@anthropics/testing-patterns** — verify test coverage, edge cases, integration points
-
-### For frontend changes
-
-Additionally load:
-- **@anthropics/testing-patterns** — focus on component testing, interaction flows, accessibility
-
-### Judgment weighting
-
-When concerns conflict (e.g., readability vs. performance), weight by impact:
+When concerns conflict, weight by impact:
 1. Correctness (always wins)
 2. Security (never compromise)
 3. Readability (maintainability over cleverness)
 4. Performance (only when measured)
 ```
 
+The routing table replaces prose headers. The agent scans the When column, matches against the current context, and loads only the relevant skills. Frontend reviews load variable-scoping, error-handling, and testing-patterns — but explicitly ignore architecture-reasoning.
+
 ## Next steps
 
 - [SKILL.md Specification](/docs/what-is-skill-md) — atomic skill format and validation rules
+- [`@skill:` Specification](/docs/at-skill-spec) — reference syntax and resolution rules
 - [Publishing](/docs/publishing) — get your composite skill into the registry
 - [CLI Reference](/docs/cli) — install and manage composite skills

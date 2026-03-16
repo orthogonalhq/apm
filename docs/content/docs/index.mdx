@@ -9,26 +9,32 @@ APM (Agent Package Manager) is the package manager and public registry for agent
 
 All packages use scoped names (`@scope/name`) to avoid collisions and provide clear provenance. The scope is derived from the GitHub repo owner for indexed packages.
 
-Discover skills on the [registry](https://apm.orthg.nl), install them with one command, and your agent picks them up automatically.
+Discover skills on the [registry](https://apm.orthg.nl), install them with one command, and tell your agent which skills to use.
 
 ## Install the CLI
 
 ### npm
 
 ```bash
-npm install -g @orthogonal/apm
+npm install -g @apm-cli/apm
 ```
 
-### Homebrew (macOS)
+### Homebrew (macOS / Linux)
 
 ```bash
-brew install orthogonal/tap/apm
+brew install orthogonalhq/apm/apm
 ```
 
-### Linux
+### Shell (macOS / Linux)
 
 ```bash
-curl -fsSL https://apm.sh/install | sh
+curl -fsSL https://apm.orthg.nl/install.sh | sh
+```
+
+### Windows
+
+```bash
+winget install Orthogonal.APM
 ```
 
 ### From source
@@ -39,15 +45,36 @@ cd apm/cli
 cargo build --release
 ```
 
-## Install your first skill
+## Quick start
 
-Search for a skill:
+### 1. Search for skills
+
+<Callout>
+  Use the [APM Registry](https://apm.orthg.nl/packages) for browsing skills with filters, sorting, and full-text search.
+</Callout>
+
+or use the CLI:
 
 ```bash
 apm search "code review"
 ```
 
-Install it:
+Results show the scoped name, stars, license, and description for each match:
+
+```
+Found 10 skill(s) matching 'code review':
+
+  @anthropics/code-review (★ 9330 · Apache-2.0)
+  Review code changes for security, performance, and correctness.
+  anthropics/knowledge-work-plugins
+
+  @cloudflare/code-review (★ 4480 · CC-BY-4.0)
+  Reviews Workers and Cloudflare Developer Platform code.
+  cloudflare/cloudflare-docs
+  ...
+```
+
+### 2. Install a skill
 
 ```bash
 apm install @anthropics/code-review
@@ -57,26 +84,75 @@ APM fetches the skill from the registry and writes it to your project:
 
 ```
 your-project/
-├── .skills/
-│   └── @anthropics/
-│       └── code-review/
-│           └── SKILL.md
-└── apm-lock.json
+├── apm-lock.json
+└── .skills/
+    └── anthropics/
+        └── code-review/
+            └── SKILL.md
 ```
 
-Your agent automatically detects installed skills in `.skills/` and loads them when relevant.
+### 3. Set up agent discovery
+
+```bash
+apm init
+```
+
+This walks you through creating an `AGENTS.md` file at your project root. Every step explains what it's doing and asks for confirmation.
+
+After setup, your `AGENTS.md` points agents to the locally installed `@apm/init` skill:
+
+```markdown
+# Agent Configuration
+
+<!-- Add project-specific instructions for AI agents here -->
+
+<!-- apm:skills -->
+## Installed Skills
+
+See .skills/apm/init/SKILL.md for the APM skill specification.
+<!-- /apm:skills -->
+```
+
+### 4. Wire up your agent config
+
+`apm init` detects agent config files and offers to add an `AGENTS.md` reference:
+
+| Agent | Config file |
+|-------|-------------|
+| Claude Code | `CLAUDE.md` |
+| Cursor | `.cursorrules` |
+| GitHub Copilot | `.github/copilot-instructions.md` |
+| Gemini CLI | `GEMINI.md` |
+| Windsurf | `.windsurfrules` |
+
+For agents that read `AGENTS.md` natively (most do — see [State of AGENTS.md](/docs/state-of-agents-md)), no extra wiring is needed.
+
+### 5. Manage your skills
+
+```bash
+# Update all skills to latest
+apm update
+
+# Remove a skill
+apm uninstall @anthropics/code-review
+
+# Restore skills on a fresh clone
+apm install
+```
 
 ## How it works
 
 1. **Discover** — browse [apm.orthg.nl](https://apm.orthg.nl) or use `apm search`
 2. **Install** — `apm install @scope/name` fetches the skill and writes it to `.skills/`
-3. **Use** — your agent loads installed skills automatically
+3. **Wire up** — `apm init` creates `AGENTS.md` and links your agent configs to installed skills
+4. **Use** — your agent reads `AGENTS.md`, sees `@skill:` references, and loads the corresponding SKILL.md files
 
-APM manages the lockfile (`apm-lock.json`) to track installed packages, their source repositories, and git refs.
+APM tracks installed packages in `apm-lock.json` — a lockfile that includes source info, descriptions, tags, and kind for each skill. Commit it to version control for reproducible installs.
 
 ## Next steps
 
 - [SKILL.md Specification](/docs/what-is-skill-md) — understand the skill format
+- [Skill References](/docs/skill-references) — the `@skill:` convention for agent discovery
 - [Composite Skills](/docs/composite-skills) — compose atomic skills into domain expertise
 - [CLI Reference](/docs/cli) — all available commands and options
 - [Publishing](/docs/publishing) — get your skills into the registry

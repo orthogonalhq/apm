@@ -1,13 +1,22 @@
 {
   "title": "Documentation",
   "pages": [
+    "---Learn---",
     "index",
+    "skill-references",
+    "---Open Standards---",
+    "state-of-agents-md",
     "what-is-skill-md",
+    "---APM Specifications---",
+    "at-skill-spec",
     "composite-skills",
+    "---Use---",
     "cli",
-    "registry",
     "publishing",
+    "---Integrate---",
+    "registry",
     "api",
+    "---Manage---",
     "delisting"
   ]
 }

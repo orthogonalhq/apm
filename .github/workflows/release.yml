@@ -315,3 +315,15 @@ jobs:
           git add Formula/apm.rb
           git commit -m "Update apm to ${{ needs.version.outputs.tag }}"
           git push
+
+  winget:
+    name: Update WinGet package
+    needs: [version, release]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: vedantmgoyal9/winget-releaser@main
+        with:
+          identifier: Orthogonal.APM
+          version: ${{ needs.version.outputs.version }}
+          installers-regex: '\.zip$'
+          token: ${{ secrets.WINGET_TOKEN }}

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { PackageListItem } from "@apm/types";
+import { ScopeLink } from "./scope-link";
 import { VerifiedBadge } from "./verified-badge";
 
 const kindColors: Record<string, string> = {
@@ -19,8 +20,8 @@ export function PackageCard({ pkg }: { pkg: PackageListItem }) {
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <h3 className="font-mono text-sm font-semibold group-hover:text-accent transition-colors truncate">
-              <span className="t-meta">@{pkg.scope}/</span>
+            <h3 className="font-mono text-sm font-semibold truncate">
+              <ScopeLink scope={pkg.scope} className="t-meta" />
               <span className="t-card-title">{pkg.name}</span>
             </h3>
             {pkg.verified && <VerifiedBadge />}

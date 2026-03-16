@@ -24,6 +24,8 @@ enum Commands {
         /// Scoped package name (@scope/name). Omit to install all from lockfile.
         package: Option<String>,
     },
+    /// Set up APM for your project — creates AGENTS.md and wires up agent configs
+    Init,
     /// Update all installed skills to their latest versions
     #[command(alias = "up")]
     Update,
@@ -42,6 +44,16 @@ enum Commands {
     Uninstall {
         /// Scoped package name (@scope/name)
         package: String,
+    },
+    /// Publish a skill to the APM registry
+    Publish {
+        /// Path to SKILL.md or directory containing one (default: current dir)
+        #[arg(default_value = ".")]
+        path: String,
+
+        /// Scope to publish under
+        #[arg(long)]
+        scope: String,
     },
     /// Validate a local SKILL.md file
     Validate {
@@ -75,6 +87,7 @@ async fn main() -> anyhow::Result<()> {
             }
             None => commands::install::run_all(&cli.registry).await,
         },
+        Commands::Init => commands::init::run(),
         Commands::Update => commands::update::run(&cli.registry).await,
         Commands::Search { query } => commands::search::run(&cli.registry, &query).await,
         Commands::Info { package } => {
@@ -84,6 +97,9 @@ async fn main() -> anyhow::Result<()> {
         Commands::Uninstall { package } => {
             let (scope, name) = parse_scoped_name(&package)?;
             commands::uninstall::run(&scope, &name)
+        }
+        Commands::Publish { path, scope } => {
+            commands::publish::run(&cli.registry, &scope, &path).await
         }
         Commands::Validate { path } => commands::validate::run(&path),
     }

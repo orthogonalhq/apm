@@ -17,7 +17,7 @@ export const revalidate = 3600;
 
 const BASE_URL = process.env.VERCEL_URL
   ? `https://${process.env.VERCEL_URL}`
-  : "https://apm.sh";
+  : "https://apm.orthg.nl";
 
 const kindColors: Record<string, string> = {
   skill: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
@@ -57,12 +57,18 @@ export async function generateMetadata({
     const total = Number(countResult.count);
     if (total === 0) return { title: "Scope not found" };
 
+    const scopeDesc = `Browse ${total} agent skill${total === 1 ? "" : "s"} published by @${parsed.scope} on APM.`;
     return {
       title: `@${parsed.scope} — Agent Skills`,
-      description: `Browse ${total} agent skill${total === 1 ? "" : "s"} published by @${parsed.scope} on APM.`,
+      description: scopeDesc,
       openGraph: {
         title: `@${parsed.scope} — Agent Skills — APM`,
-        description: `Browse ${total} agent skill${total === 1 ? "" : "s"} published by @${parsed.scope}.`,
+        description: scopeDesc,
+      },
+      twitter: {
+        card: "summary_large_image",
+        title: `@${parsed.scope} — Agent Skills — APM`,
+        description: scopeDesc,
       },
     };
   }
@@ -93,6 +99,11 @@ export async function generateMetadata({
     title: `${fullName} — Agent Skill`,
     description: descText,
     openGraph: {
+      title: `${fullName} — Agent Skill — APM`,
+      description: descText,
+    },
+    twitter: {
+      card: "summary_large_image",
       title: `${fullName} — Agent Skill — APM`,
       description: descText,
     },
@@ -325,7 +336,7 @@ export default async function PackagePage({
             </p>
             <div className="flex items-center gap-3 flex-wrap">
               <h1 className="font-mono text-2xl md:text-3xl font-semibold tracking-[-0.02em] t-heading">
-                <span className="t-meta">@{pkg.scope}/</span>
+                <Link href={`/packages/@${pkg.scope}`} className="t-meta hover:text-accent transition-colors">@{pkg.scope}/</Link>
                 {pkg.name}
               </h1>
               <span

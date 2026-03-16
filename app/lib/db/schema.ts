@@ -36,7 +36,11 @@ export const packages = pgTable(
       .default(sql`'{}'::text[]`),
     language: varchar("language", { length: 16 }).notNull().default("en"),
 
+    // ── Scope ──────────────────────────────────────────────
+    scopeId: uuid("scope_id"),
+
     // ── Source ───────────────────────────────────────────────
+    source: varchar("source", { length: 16 }).notNull().default("indexed"),
     sourceRepo: varchar("source_repo", { length: 512 }).notNull(),
     sourcePath: varchar("source_path", { length: 512 }).notNull(),
     sourceRef: varchar("source_ref", { length: 128 }).default("main"),
@@ -116,7 +120,168 @@ export const packageDependencies = pgTable(
   ]
 );
 
+// ── Publishers ─────────────────────────────────────────────
+export const publishers = pgTable("publishers", {
+  id: uuid("id")
+    .primaryKey()
+    .default(sql`gen_random_uuid()`),
+  displayName: varchar("display_name", { length: 256 }).notNull(),
+  email: varchar("email", { length: 256 }),
+  avatarUrl: varchar("avatar_url", { length: 512 }),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  status: varchar("status", { length: 16 }).notNull().default("active"),
+});
+
+// ── Auth Methods ──────────────────────────────────────────
+export const publisherAuthMethods = pgTable(
+  "publisher_auth_methods",
+  {
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    publisherId: uuid("publisher_id")
+      .notNull()
+      .references(() => publishers.id, { onDelete: "cascade" }),
+    provider: varchar("provider", { length: 16 }).notNull(),
+    providerId: varchar("provider_id", { length: 256 }).notNull(),
+    providerUsername: varchar("provider_username", { length: 256 }),
+    providerEmail: varchar("provider_email", { length: 256 }),
+    accessToken: varchar("access_token", { length: 512 }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("idx_auth_provider_id").on(table.provider, table.providerId),
+    index("idx_auth_publisher").on(table.publisherId),
+  ]
+);
+
+// ── Scopes ────────────────────────────────────────────────
+export const scopes = pgTable(
+  "scopes",
+  {
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    name: varchar("name", { length: 64 }).notNull().unique(),
+    displayName: varchar("display_name", { length: 256 }),
+    description: varchar("description", { length: 1024 }),
+    url: varchar("url", { length: 512 }),
+    verified: boolean("verified").default(false),
+    verificationMethod: varchar("verification_method", { length: 16 }),
+    reservedFor: varchar("reserved_for", { length: 256 }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    status: varchar("status", { length: 16 }).notNull().default("active"),
+  },
+  (table) => [index("idx_scopes_status").on(table.status)]
+);
+
+// ── Scope Members ─────────────────────────────────────────
+export const scopeMembers = pgTable(
+  "scope_members",
+  {
+    scopeId: uuid("scope_id")
+      .notNull()
+      .references(() => scopes.id, { onDelete: "cascade" }),
+    publisherId: uuid("publisher_id")
+      .notNull()
+      .references(() => publishers.id, { onDelete: "cascade" }),
+    role: varchar("role", { length: 16 }).notNull().default("publisher"),
+    invitedBy: uuid("invited_by").references(() => publishers.id),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.scopeId, table.publisherId] }),
+    index("idx_scope_members_publisher").on(table.publisherId),
+  ]
+);
+
+// ── Personal Access Tokens ────────────────────────────────
+export const personalAccessTokens = pgTable(
+  "personal_access_tokens",
+  {
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    publisherId: uuid("publisher_id")
+      .notNull()
+      .references(() => publishers.id, { onDelete: "cascade" }),
+    name: varchar("name", { length: 256 }).notNull(),
+    tokenHash: varchar("token_hash", { length: 256 }).notNull(),
+    scopeId: uuid("scope_id").references(() => scopes.id, {
+      onDelete: "cascade",
+    }),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+    lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [index("idx_pat_publisher").on(table.publisherId)]
+);
+
+// ── Scope Tokens ──────────────────────────────────────────
+export const scopeTokens = pgTable(
+  "scope_tokens",
+  {
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    scopeId: uuid("scope_id")
+      .notNull()
+      .references(() => scopes.id, { onDelete: "cascade" }),
+    name: varchar("name", { length: 256 }).notNull(),
+    tokenHash: varchar("token_hash", { length: 256 }).notNull(),
+    createdBy: uuid("created_by")
+      .notNull()
+      .references(() => publishers.id),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+    lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [index("idx_scope_tokens_scope").on(table.scopeId)]
+);
+
+// ── Audit Log ─────────────────────────────────────────────
+export const auditLog = pgTable(
+  "audit_log",
+  {
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    actorId: uuid("actor_id"),
+    actorType: varchar("actor_type", { length: 16 }).notNull(),
+    action: varchar("action", { length: 64 }).notNull(),
+    targetType: varchar("target_type", { length: 16 }).notNull(),
+    targetId: uuid("target_id").notNull(),
+    metadata: jsonb("metadata"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("idx_audit_actor").on(table.actorId),
+    index("idx_audit_target").on(table.targetType, table.targetId),
+    index("idx_audit_action").on(table.action),
+    index("idx_audit_created").on(table.createdAt),
+  ]
+);
+
+// ── Types ─────────────────────────────────────────────────
 export type PackageRecord = typeof packages.$inferSelect;
 export type NewPackageRecord = typeof packages.$inferInsert;
 export type PackageDependencyRecord =
   typeof packageDependencies.$inferSelect;
+export type PublisherRecord = typeof publishers.$inferSelect;
+export type ScopeRecord = typeof scopes.$inferSelect;
+export type ScopeMemberRecord = typeof scopeMembers.$inferSelect;
+export type AuditLogRecord = typeof auditLog.$inferSelect;

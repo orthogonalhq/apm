@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { ScopeLink } from "./scope-link";
 import { VerifiedBadge } from "./verified-badge";
 import {
   useState,
@@ -208,7 +209,7 @@ export function SearchModal({
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
                         <span className="font-mono text-sm truncate">
-                          <span className="t-meta">@{result.scope}/</span>
+                          <ScopeLink scope={result.scope} className="t-meta" />
                           <span className="t-card-title">{result.name}</span>
                         </span>
                         {result.verified && <VerifiedBadge />}
