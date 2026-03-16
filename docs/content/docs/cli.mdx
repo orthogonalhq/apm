@@ -21,6 +21,55 @@ All packages use scoped names in the format `@scope/name`. The scope is typicall
 @myorg/internal-guidelines
 ```
 
+## `apm init`
+
+Set up APM for your project. Interactive, guided setup that creates agent configuration files and wires up skill references.
+
+```bash
+apm init
+```
+
+**What it does:**
+
+1. Creates `AGENTS.md` at project root if it doesn't exist
+2. Lists your installed skills with descriptions
+3. Adds `@skill:scope/name` references to `AGENTS.md`
+4. Detects agent config files (`CLAUDE.md`, `.cursorrules`, `.github/copilot-instructions.md`, `GEMINI.md`, `.windsurfrules`) and offers to link them to `AGENTS.md`
+
+Every step prompts for confirmation and explains what it's doing and why. Safe to run multiple times — it detects existing state and skips.
+
+**Example:**
+
+```bash
+$ apm init
+
+apm Setting up APM for this project.
+
+  ? Create AGENTS.md? (Y/n) y
+    AGENTS.md is the entry point for AI agents working in your project.
+    It contains project-specific instructions and references to skills.
+  ✓ Created AGENTS.md
+
+  You have 2 installed skill(s):
+    @anthropics/code-review — Review code changes for security...
+    @cloudflare/code-review — Reviews Workers and Cloudflare...
+
+  ? Add skill references to AGENTS.md? (Y/n) y
+    @skill:scope/name tells agents which installed skills to load.
+    Agents read these references and load the corresponding SKILL.md files.
+  ✓ Added @skill references to AGENTS.md
+
+  Detected CLAUDE.md
+  ? Add a reference to AGENTS.md in CLAUDE.md? (Y/n) y
+    This tells Claude Code to read AGENTS.md, which links to your skills.
+  ✓ Updated CLAUDE.md
+
+apm Done! Your agents can now discover installed skills.
+  Learn more: https://apm.orthg.nl/docs/skill-references
+```
+
+See [Skill References](/docs/skill-references) for the full spec on the `@skill:` convention.
+
 ## `apm install` (alias: `apm i`)
 
 Install a skill by scoped name, or restore all from lockfile.
@@ -35,12 +84,12 @@ apm install
 
 **What it does:**
 
-1. Fetches package metadata from the registry (`/api/packages/@scope/name`)
-2. Creates `.skills/@scope/name/` in your project root
+1. Fetches package metadata from the registry
+2. Creates `.skills/scope/name/` in your project root
 3. Writes the `SKILL.md` file
-4. Updates `apm-lock.json` with the package source, ref, description, kind, and tags
+4. Updates `apm-lock.json` with source info, description, kind, and tags
 
-When run without arguments, installs all packages listed in `apm-lock.json`.
+When run without arguments, re-fetches and installs all packages listed in `apm-lock.json`. Useful for cloning a project and restoring its skills.
 
 **Project root detection:** APM walks up from the current directory looking for `apm-lock.json`, `package.json`, `Cargo.toml`, or `.git`. Falls back to the current directory.
 
@@ -63,7 +112,54 @@ your-project/
             └── SKILL.md
 ```
 
-See [Skill References](/docs/agents-md) for how to expose installed skills to AI agents.
+After installing, run `apm init` to wire skills into your agent configs.
+
+## `apm uninstall` (alias: `apm u`)
+
+Remove an installed skill.
+
+```bash
+apm uninstall @scope/name
+```
+
+**What it does:**
+
+1. Removes `.skills/scope/name/` directory
+2. Cleans up empty scope directories
+3. Removes the entry from `apm-lock.json`
+
+**Example:**
+
+```bash
+$ apm uninstall @anthropics/code-review
+apm Uninstalled @anthropics/code-review
+```
+
+## `apm update` (alias: `apm up`)
+
+Re-fetch latest versions for all installed skills.
+
+```bash
+apm update
+```
+
+**What it does:**
+
+1. Reads all packages from `apm-lock.json`
+2. Fetches the latest version of each from the registry
+3. Overwrites the local `SKILL.md` files
+4. Updates the lockfile with latest metadata
+
+**Example:**
+
+```bash
+$ apm update
+apm Updating 3 package(s)...
+  ↑ @anthropics/code-review... ✓
+  ↑ @cloudflare/code-review... ✓
+  ↑ @microsoft/code-review... ✓
+apm All packages updated
+```
 
 ## `apm search`
 
@@ -118,54 +214,6 @@ $ apm info @anthropics/code-review
   apm install @anthropics/code-review
 ```
 
-## `apm uninstall` (alias: `apm u`)
-
-Remove an installed skill.
-
-```bash
-apm uninstall @scope/name
-```
-
-**What it does:**
-
-1. Removes `.skills/@scope/name/` directory
-2. Cleans up empty scope directories
-3. Removes the entry from `apm-lock.json`
-4. Regenerates `SKILLS.md`
-
-**Example:**
-
-```bash
-$ apm uninstall @anthropics/code-review
-apm Uninstalled @anthropics/code-review
-```
-
-## `apm update` (alias: `apm up`)
-
-Re-fetch latest versions for all installed skills.
-
-```bash
-apm update
-```
-
-**What it does:**
-
-1. Reads all packages from `apm-lock.json`
-2. Fetches the latest version of each from the registry
-3. Overwrites the local `SKILL.md` files
-4. Updates the lockfile with latest metadata
-
-**Example:**
-
-```bash
-$ apm update
-apm Updating 3 package(s)...
-  ↑ @anthropics/code-review... ✓
-  ↑ @cloudflare/code-review... ✓
-  ↑ @microsoft/code-review... ✓
-apm All packages updated
-```
-
 ## `apm validate`
 
 Validate a local SKILL.md file against the specification.
@@ -208,7 +256,12 @@ $ apm validate ./bad-skill
 
 ## Lockfile
 
-APM maintains an `apm-lock.json` file at your project root. Since v2, it includes skill metadata (description, kind, tags) alongside source tracking:
+APM maintains an `apm-lock.json` file at your project root. It serves two purposes:
+
+1. **Reproducible installs** — run `apm install` on a fresh clone to restore all skills
+2. **Skill index** — metadata for tooling, editors, and agents to understand what's installed
+
+Since lockfile v2, each entry includes metadata from the SKILL.md frontmatter:
 
 ```json
 {
@@ -218,7 +271,7 @@ APM maintains an `apm-lock.json` file at your project root. Since v2, it include
       "sourceRepo": "anthropics/knowledge-work-plugins",
       "sourcePath": "engineering/skills/code-review/SKILL.md",
       "sourceRef": "main",
-      "commitSha": "abc123...",
+      "commitSha": null,
       "description": "Review code changes for security, performance, and correctness.",
       "kind": "skill",
       "tags": ["code-review", "security"]
@@ -227,7 +280,30 @@ APM maintains an `apm-lock.json` file at your project root. Since v2, it include
 }
 ```
 
-The lockfile ensures reproducible installs and serves as the skill index. Commit it to version control. See [Skill References](/docs/agents-md) for how to expose skills to agents.
+| Field | Description |
+|-------|-------------|
+| `sourceRepo` | GitHub repository |
+| `sourcePath` | Path to SKILL.md within the repo |
+| `sourceRef` | Git branch or tag |
+| `commitSha` | Pinned commit (when available) |
+| `description` | One-line description from frontmatter |
+| `kind` | `skill`, `composite-skill`, `workflow`, or `app` |
+| `tags` | Tags from frontmatter |
+
+Commit `apm-lock.json` to version control.
+
+## Command summary
+
+| Command | Alias | Description |
+|---------|-------|-------------|
+| `apm init` | | Set up agent configs for your project |
+| `apm install @scope/name` | `apm i` | Install a skill |
+| `apm install` | `apm i` | Restore all from lockfile |
+| `apm uninstall @scope/name` | `apm u` | Remove a skill |
+| `apm update` | `apm up` | Re-fetch latest for all skills |
+| `apm search <query>` | | Search the registry |
+| `apm info @scope/name` | | Show skill details |
+| `apm validate <path>` | | Validate a SKILL.md |
 
 ## Environment variables
 

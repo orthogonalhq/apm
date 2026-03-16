@@ -1,0 +1,204 @@
+---
+title: Skill References
+description: The @skill convention for exposing installed skills to AI agents
+---
+
+## The problem
+
+You've installed skills with APM. They live in `.skills/`. But your AI agent doesn't magically know they exist. You need a way to tell agents which skills to load — one that's transparent, explicit, and works across every agent product.
+
+## The `@skill:` convention
+
+APM defines a simple reference syntax that works in any markdown file:
+
+```
+@skill:anthropics/code-review
+```
+
+When an agent sees `@skill:scope/name`, it knows to load `.skills/scope/name/SKILL.md`.
+
+That's it. No special tooling. No magic. Just a text convention that bridges the gap between installed skills and agent awareness.
+
+## Getting started
+
+The fastest way to set up skill references is `apm init`:
+
+```bash
+apm init
+```
+
+This interactive command:
+1. Creates `AGENTS.md` at project root if it doesn't exist
+2. Lists your installed skills with descriptions
+3. Adds `@skill:` references for each installed skill
+4. Detects your agent config files and offers to wire them up
+
+Every step prompts for confirmation and explains what it's doing.
+
+## AGENTS.md
+
+`AGENTS.md` is a project-root file that serves as the entry point for AI agents. It's where you put project-specific instructions and skill references together.
+
+APM doesn't force this convention — you can put `@skill:` references anywhere. But `AGENTS.md` provides a single, consistent location that any agent can look for.
+
+### Example
+
+```markdown
+# Agent Configuration
+
+## Project context
+
+This is a Next.js e-commerce app. The API lives in /app/api.
+Always use server components unless client interactivity is needed.
+
+## Coding standards
+
+- TypeScript strict mode
+- Prefer named exports
+- Keep components under 200 lines
+
+<!-- apm:skills -->
+## Installed Skills
+
+@skill:anthropics/code-review
+@skill:cloudflare/code-review
+@skill:myorg/testing-standards
+
+<!-- /apm:skills -->
+```
+
+The `<!-- apm:skills -->` markers delimit the section managed by `apm init`. Your content above and below is never touched.
+
+## Wiring up your agent
+
+Each agent product has its own config file. Point it at `AGENTS.md`:
+
+### Claude Code
+
+Add to `CLAUDE.md`:
+```markdown
+See [AGENTS.md](./AGENTS.md) for installed agent skills.
+```
+
+### Cursor
+
+Add to `.cursorrules`:
+```markdown
+See [AGENTS.md](./AGENTS.md) for installed agent skills.
+```
+
+### GitHub Copilot
+
+Add to `.github/copilot-instructions.md`:
+```markdown
+See [AGENTS.md](./AGENTS.md) for installed agent skills.
+```
+
+### Gemini CLI
+
+Add to `GEMINI.md`:
+```markdown
+See [AGENTS.md](./AGENTS.md) for installed agent skills.
+```
+
+### Windsurf
+
+Add to `.windsurfrules`:
+```markdown
+See [AGENTS.md](./AGENTS.md) for installed agent skills.
+```
+
+`apm init` detects these files and offers to add the reference automatically.
+
+## Design principles
+
+### Explicit over implicit
+
+Skills are system prompt instructions. They change how your agent behaves. You should always see exactly what instructions your agent is operating under.
+
+APM never silently injects skills into your agent. You explicitly add `@skill:` references to the files your agent reads. If you don't reference a skill, the agent doesn't load it — even if it's installed.
+
+### Composable
+
+Different agents can load different skills. Your `CLAUDE.md` might reference:
+```
+@skill:anthropics/code-review
+```
+
+While `.cursorrules` references:
+```
+@skill:myorg/frontend-standards
+```
+
+Skills aren't global — they're scoped to the agent config that references them.
+
+### Portable
+
+The `@skill:` syntax is plain text. It works in any markdown file, any agent, any editor. No build step, no preprocessing, no runtime dependency.
+
+### Zero magic files
+
+APM doesn't generate index files or modify your project as a side effect of `apm install`. The only files APM manages are:
+- `.skills/` — installed skill content
+- `apm-lock.json` — lockfile
+
+Everything else (`AGENTS.md`, agent config references) is created via `apm init` with your explicit consent.
+
+## The lockfile as skill index
+
+`apm-lock.json` (v2) includes metadata for every installed skill:
+
+```json
+{
+  "lockfileVersion": 2,
+  "packages": {
+    "@anthropics/code-review": {
+      "sourceRepo": "anthropics/knowledge-work-plugins",
+      "sourcePath": "engineering/skills/code-review/SKILL.md",
+      "sourceRef": "main",
+      "description": "Review code changes for security, performance, and correctness.",
+      "kind": "skill",
+      "tags": ["code-review", "security"]
+    }
+  }
+}
+```
+
+This means tooling, editors, and agents can read the lockfile to understand what's available without scanning the `.skills/` directory. The lockfile is the single source of truth.
+
+## Agent adoption
+
+Today, agents don't natively resolve `@skill:` references. Until they do, the practical flow is:
+
+1. Agent reads `CLAUDE.md` (or equivalent)
+2. `CLAUDE.md` says "See AGENTS.md"
+3. Agent reads `AGENTS.md`, sees `@skill:anthropics/code-review`
+4. Agent reads `.skills/anthropics/code-review/SKILL.md`
+
+Most agents follow file references already. The `@skill:` syntax gives this a consistent name.
+
+As APM and the agentskills.io ecosystem grow, we expect agents to resolve `@skill:` natively — making the reference-chaining unnecessary.
+
+## Version control
+
+| File | Commit? | Why |
+|------|---------|-----|
+| `apm-lock.json` | Yes | Reproducible installs + skill index |
+| `AGENTS.md` | Yes | Team-shared agent configuration |
+| `.skills/` | Optional | Commit for offline use, or regenerate via `apm install` |
+
+## Project structure
+
+```
+your-project/
+├── CLAUDE.md              # → references AGENTS.md
+├── AGENTS.md              # → contains @skill: references
+├── apm-lock.json          # → skill metadata + lockfile
+└── .skills/
+    ├── anthropics/
+    │   └── code-review/
+    │       └── SKILL.md
+    └── cloudflare/
+        └── code-review/
+            └── SKILL.md
+```

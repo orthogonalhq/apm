@@ -9,7 +9,7 @@ APM (Agent Package Manager) is the package manager and public registry for agent
 
 All packages use scoped names (`@scope/name`) to avoid collisions and provide clear provenance. The scope is derived from the GitHub repo owner for indexed packages.
 
-Discover skills on the [registry](https://apm.orthg.nl), install them with one command, and your agent picks them up automatically.
+Discover skills on the [registry](https://apm.orthg.nl), install them with one command, and tell your agent which skills to use.
 
 ## Install the CLI
 
@@ -45,44 +45,88 @@ cd apm/cli
 cargo build --release
 ```
 
-## Install your first skill
+## Quick start
 
-Search for a skill:
+### 1. Search and install
 
 ```bash
 apm search "code review"
-```
-
-Install it:
-
-```bash
 apm install @anthropics/code-review
 ```
 
-APM fetches the skill from the registry and writes it to your project:
+APM fetches the skill and writes it to your project:
 
 ```
 your-project/
-├── .skills/
-│   └── @anthropics/
-│       └── code-review/
-│           └── SKILL.md
-└── apm-lock.json
+├── apm-lock.json
+└── .skills/
+    └── anthropics/
+        └── code-review/
+            └── SKILL.md
 ```
 
-Your agent automatically detects installed skills in `.skills/` and loads them when relevant.
+### 2. Set up agent discovery
+
+```bash
+apm init
+```
+
+This walks you through creating an `AGENTS.md` file at your project root and adding `@skill:` references so your agent knows which skills to load. Every step explains what it's doing and asks for confirmation.
+
+After setup, your `AGENTS.md` looks like:
+
+```markdown
+# Agent Configuration
+
+<!-- project-specific instructions here -->
+
+<!-- apm:skills -->
+## Installed Skills
+
+@skill:anthropics/code-review
+
+<!-- /apm:skills -->
+```
+
+### 3. Reference from your agent config
+
+Point your agent at `AGENTS.md`:
+
+| Agent | Config file | What to add |
+|-------|-------------|-------------|
+| Claude Code | `CLAUDE.md` | `See AGENTS.md for installed agent skills.` |
+| Cursor | `.cursorrules` | `See AGENTS.md for installed agent skills.` |
+| GitHub Copilot | `.github/copilot-instructions.md` | `See AGENTS.md for installed agent skills.` |
+| Gemini CLI | `GEMINI.md` | `See AGENTS.md for installed agent skills.` |
+
+`apm init` can do this for you — it detects your agent config files and offers to add the reference.
+
+### 4. Manage your skills
+
+```bash
+# Update all skills to latest
+apm update
+
+# Remove a skill
+apm uninstall @anthropics/code-review
+
+# Restore skills on a fresh clone
+apm install
+```
 
 ## How it works
 
 1. **Discover** — browse [apm.orthg.nl](https://apm.orthg.nl) or use `apm search`
 2. **Install** — `apm install @scope/name` fetches the skill and writes it to `.skills/`
-3. **Use** — your agent loads installed skills automatically
+3. **Wire up** — `apm init` creates `AGENTS.md` and links your agent configs to installed skills
+4. **Use** — your agent reads `AGENTS.md`, sees `@skill:` references, and loads the corresponding SKILL.md files
 
-APM manages the lockfile (`apm-lock.json`) to track installed packages, their source repositories, and git refs.
+APM tracks installed packages in `apm-lock.json` — a lockfile that includes source info, descriptions, tags, and kind for each skill. Commit it to version control for reproducible installs.
 
 ## Next steps
 
 - [SKILL.md Specification](/docs/what-is-skill-md) — understand the skill format
+- [Skill References](/docs/skill-references) — the `@skill:` convention for agent discovery
 - [Composite Skills](/docs/composite-skills) — compose atomic skills into domain expertise
 - [CLI Reference](/docs/cli) — all available commands and options
 - [Publishing](/docs/publishing) — get your skills into the registry
