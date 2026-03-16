@@ -18,11 +18,13 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    /// Install a skill by scoped name (e.g. @anthropics/code-review)
+    /// Install a skill by scoped name, or restore all from lockfile
     Install {
-        /// Scoped package name (@scope/name)
-        package: String,
+        /// Scoped package name (@scope/name). Omit to install all from lockfile.
+        package: Option<String>,
     },
+    /// Update all installed skills to their latest versions
+    Update,
     /// Search for skills
     Search {
         /// Search query
@@ -63,10 +65,14 @@ async fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
-        Commands::Install { package } => {
-            let (scope, name) = parse_scoped_name(&package)?;
-            commands::install::run(&cli.registry, &scope, &name).await
-        }
+        Commands::Install { package } => match package {
+            Some(pkg) => {
+                let (scope, name) = parse_scoped_name(&pkg)?;
+                commands::install::run_one(&cli.registry, &scope, &name).await
+            }
+            None => commands::install::run_all(&cli.registry).await,
+        },
+        Commands::Update => commands::update::run(&cli.registry).await,
         Commands::Search { query } => commands::search::run(&cli.registry, &query).await,
         Commands::Info { package } => {
             let (scope, name) = parse_scoped_name(&package)?;
