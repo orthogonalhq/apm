@@ -49,6 +49,12 @@ cargo build --release
 
 ### 1. Search for skills
 
+<Callout>
+  Use the [APM Registry](https://apm.orthg.nl/packages) for browsing skills with filters, sorting, and full-text search.
+</Callout>
+
+or use the CLI:
+
 ```bash
 apm search "code review"
 ```
@@ -67,10 +73,6 @@ Found 10 skill(s) matching 'code review':
   cloudflare/cloudflare-docs
   ...
 ```
-
-<Callout>
-  Use the [APM Registry](https://apm.orthg.nl/packages) for browsing skills with filters, sorting, and full-text search across 10,000+ indexed packages.
-</Callout>
 
 ### 2. Install a skill
 
@@ -95,35 +97,35 @@ your-project/
 apm init
 ```
 
-This walks you through creating an `AGENTS.md` file at your project root and adding `@skill:` references so your agent knows which skills to load. Every step explains what it's doing and asks for confirmation.
+This walks you through creating an `AGENTS.md` file at your project root. Every step explains what it's doing and asks for confirmation.
 
-After setup, your `AGENTS.md` looks like:
+After setup, your `AGENTS.md` points agents to the locally installed `@apm/init` skill:
 
 ```markdown
 # Agent Configuration
 
-<!-- project-specific instructions here -->
+<!-- Add project-specific instructions for AI agents here -->
 
 <!-- apm:skills -->
 ## Installed Skills
 
-@skill:anthropics/code-review
-
+See .skills/apm/init/SKILL.md for the APM skill specification.
 <!-- /apm:skills -->
 ```
 
-### 4. Reference from your agent config
+### 4. Wire up your agent config
 
-Point your agent at `AGENTS.md`:
+`apm init` detects agent config files and offers to add an `AGENTS.md` reference:
 
-| Agent | Config file | What to add |
-|-------|-------------|-------------|
-| Claude Code | `CLAUDE.md` | `See AGENTS.md for installed agent skills.` |
-| Cursor | `.cursorrules` | `See AGENTS.md for installed agent skills.` |
-| GitHub Copilot | `.github/copilot-instructions.md` | `See AGENTS.md for installed agent skills.` |
-| Gemini CLI | `GEMINI.md` | `See AGENTS.md for installed agent skills.` |
+| Agent | Config file |
+|-------|-------------|
+| Claude Code | `CLAUDE.md` |
+| Cursor | `.cursorrules` |
+| GitHub Copilot | `.github/copilot-instructions.md` |
+| Gemini CLI | `GEMINI.md` |
+| Windsurf | `.windsurfrules` |
 
-`apm init` can do this for you — it detects your agent config files and offers to add the reference.
+For agents that read `AGENTS.md` natively (most do — see [State of AGENTS.md](/docs/state-of-agents-md)), no extra wiring is needed.
 
 ### 5. Manage your skills
 
