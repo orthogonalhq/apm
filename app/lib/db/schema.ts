@@ -276,6 +276,25 @@ export const auditLog = pgTable(
   ]
 );
 
+// ── Sessions ─────────────────────────────────────────────
+export const sessions = pgTable(
+  "sessions",
+  {
+    token: varchar("token", { length: 64 }).primaryKey(),
+    publisherId: uuid("publisher_id")
+      .notNull()
+      .references(() => publishers.id, { onDelete: "cascade" }),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("idx_sessions_publisher").on(table.publisherId),
+    index("idx_sessions_expires").on(table.expiresAt),
+  ]
+);
+
 // ── Types ─────────────────────────────────────────────────
 export type PackageRecord = typeof packages.$inferSelect;
 export type NewPackageRecord = typeof packages.$inferInsert;

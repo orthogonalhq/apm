@@ -1,20 +1,24 @@
 import { cookies } from "next/headers";
 import { db } from "@/lib/db";
-import { publishers, publisherAuthMethods } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import {
+  publishers,
+  publisherAuthMethods,
+  sessions,
+} from "@/lib/db/schema";
+import { eq, and, gt } from "drizzle-orm";
 import crypto from "crypto";
 
 const SESSION_COOKIE = "apm_session";
 const SESSION_MAX_AGE = 60 * 60 * 24 * 30; // 30 days
 
-// In-memory session store for now. Replace with Redis or DB-backed sessions at scale.
-const sessions = new Map<string, { publisherId: string; expiresAt: number }>();
-
 export async function createSession(publisherId: string): Promise<string> {
   const token = crypto.randomBytes(32).toString("hex");
-  sessions.set(token, {
+  const expiresAt = new Date(Date.now() + SESSION_MAX_AGE * 1000);
+
+  await db.insert(sessions).values({
+    token,
     publisherId,
-    expiresAt: Date.now() + SESSION_MAX_AGE * 1000,
+    expiresAt,
   });
 
   const cookieStore = await cookies();
@@ -36,12 +40,18 @@ export async function getSession(): Promise<{
   const token = cookieStore.get(SESSION_COOKIE)?.value;
   if (!token) return null;
 
-  const session = sessions.get(token);
+  const [session] = await db
+    .select()
+    .from(sessions)
+    .where(
+      and(
+        eq(sessions.token, token),
+        gt(sessions.expiresAt, new Date())
+      )
+    )
+    .limit(1);
+
   if (!session) return null;
-  if (session.expiresAt < Date.now()) {
-    sessions.delete(token);
-    return null;
-  }
 
   return { publisherId: session.publisherId };
 }
@@ -64,7 +74,7 @@ export async function destroySession() {
   const cookieStore = await cookies();
   const token = cookieStore.get(SESSION_COOKIE)?.value;
   if (token) {
-    sessions.delete(token);
+    await db.delete(sessions).where(eq(sessions.token, token));
   }
   cookieStore.delete(SESSION_COOKIE);
 }
