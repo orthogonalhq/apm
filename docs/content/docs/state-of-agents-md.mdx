@@ -1,0 +1,114 @@
+---
+title: State of AGENTS.md
+description: An overview of the AGENTS.md specification — the emerging standard for AI agent project instructions
+---
+
+*Last updated: March 2026*
+
+## The emerging standard: AGENTS.md
+
+[AGENTS.md](https://agents.md) is now the closest thing to a standard for AI agent project instructions. Originally released by OpenAI for Codex (August 2025), it was contributed to the **Agentic AI Foundation** under the **Linux Foundation** in December 2025 — alongside Anthropic's Model Context Protocol (MCP) and Block's goose. It's been adopted by 60,000+ open source projects.
+
+## Who reads what
+
+| Agent | Primary file | Reads AGENTS.md? | Notes |
+|-------|-------------|-------------------|-------|
+| OpenAI Codex | `AGENTS.md` | Yes (native) | Originated the spec. Walks directory tree, merges files root→cwd |
+| Cursor | `.cursorrules` (legacy) → `.cursor/rules/` | Yes | `.cursorrules` considered legacy; AGENTS.md is cross-tool |
+| GitHub Copilot | `.github/copilot-instructions.md` | Yes | |
+| Gemini CLI | `GEMINI.md` | Yes | `contextFileName` setting accepts a list — can read both |
+| Windsurf | `.windsurfrules` | Yes | Docs confirm AGENTS.md support for directory-scoped instructions |
+| Claude Code | `CLAUDE.md` | **No** | [Open feature request (#6235)](https://github.com/anthropics/claude-code/issues/6235). Workaround: reference from CLAUDE.md |
+| Aider | `.aider.conf.yml` | Via config | Set `read: AGENTS.md` in config |
+| Cline | `.clinerules/` | Unclear | Directory-based rules system |
+| RooCode | — | Yes | Listed as supported |
+| Zed / Warp | — | Yes | Listed as supported |
+
+AGENTS.md has the gravity — Linux Foundation backing, OpenAI origin, broad adoption. Claude Code is the notable holdout with only `CLAUDE.md`, though that's likely a matter of time given Anthropic co-founded the Agentic AI Foundation.
+
+## What is AGENTS.md?
+
+A simple, open format for guiding coding agents. Think of it as a README for agents: a dedicated, predictable place to provide the context, conventions, and constraints that help AI coding agents work effectively in your project.
+
+## Format
+
+AGENTS.md is standard Markdown. There are no required fields, no frontmatter, and no schema to validate against. Use any headings you like — the agent parses the text you provide.
+
+Recommended sections include:
+
+- Project overview
+- Build and test commands
+- Code style guidelines
+- Testing instructions
+- Security considerations
+- Commit message / PR conventions
+- Deployment steps
+
+## File discovery
+
+AGENTS.md uses the filesystem hierarchy to provide contextual, layered guidance:
+
+1. The agent starts at the file being edited and walks **up** the directory tree
+2. The **closest** `AGENTS.md` to the edited file takes precedence
+3. Explicit user prompts override everything
+
+This means a monorepo can define global conventions at the root while providing specialized instructions in subdirectories:
+
+```
+monorepo/
+├── AGENTS.md              # Global conventions
+├── packages/
+│   ├── frontend/
+│   │   └── AGENTS.md      # Frontend-specific guidance
+│   └── backend/
+│       └── AGENTS.md      # Backend-specific guidance
+```
+
+### Override files
+
+Some agents (notably Codex) support `AGENTS.override.md` — if present, it replaces `AGENTS.md` at that directory level entirely. This is an agent-specific extension, not part of the base spec.
+
+### Merge order
+
+When multiple `AGENTS.md` files apply, agents concatenate them root-to-current-directory, joined by blank lines. Files closer to the working directory appear later in the prompt, effectively overriding earlier guidance.
+
+## Adoption
+
+AGENTS.md is supported by 23+ agent products:
+
+Codex, Jules, VS Code, Cursor, GitHub Copilot, Gemini CLI, Windsurf, Devin, Junie (JetBrains), Amp, Aider, RooCode, Zed, Warp, Factory, goose, opencode, Kilo Code, Phoenix, Semgrep, Augment Code, UiPath (Autopilot & Coded Agents), and Ona.
+
+### Notable exception
+
+**Claude Code** does not natively read `AGENTS.md` as of March 2026. It uses `CLAUDE.md` exclusively. There is an [open feature request](https://github.com/anthropics/claude-code/issues/6235) for AGENTS.md support. The practical workaround is to reference `AGENTS.md` from `CLAUDE.md`:
+
+```markdown
+See [AGENTS.md](./AGENTS.md) for project-wide agent instructions.
+```
+
+## What AGENTS.md does not cover
+
+AGENTS.md defines where project **instructions** live. It does not define:
+
+- **Skill format** — that's the [Agent Skills specification](https://agentskills.io) (`SKILL.md`)
+- **Skill discovery** — how agents find and load installed skills (see [Skill References](/docs/skill-references))
+- **Package management** — how skills are installed, versioned, and tracked (that's what APM does)
+
+This is the gap APM bridges: AGENTS.md tells agents how to work in your project, APM tells agents which skills are available.
+
+## Relationship to APM
+
+APM uses `apm init` to:
+
+1. Create `AGENTS.md` if it doesn't exist — for your project-specific instructions
+2. Detect agent config files (`CLAUDE.md`, `.cursorrules`, etc.) and wire them to reference `AGENTS.md`
+3. Inject skill discovery instructions so agents know how to find and load installed skills from `.skills/`
+
+APM treats `AGENTS.md` as the canonical project instructions file and builds on top of it rather than replacing it.
+
+## Links
+
+- [AGENTS.md specification](https://agents.md)
+- [GitHub repository](https://github.com/agentsmd/agents.md)
+- [Agentic AI Foundation announcement](https://www.linuxfoundation.org/press/linux-foundation-announces-the-formation-of-the-agentic-ai-foundation)
+- [Agent Skills specification](https://agentskills.io/specification)

@@ -1,0 +1,207 @@
+---
+title: "@skill: Specification"
+description: A text convention for referencing installed agent skills by scoped name
+---
+
+## Status
+
+**Draft** — `@skill:` is an APM convention. No agent natively resolves it today. This specification defines the syntax, resolution rules, and intended semantics so that agent products can adopt it consistently.
+
+## The gap
+
+Two open standards exist for agent-assisted development:
+
+- **[AGENTS.md](https://agents.md)** defines where project instructions live
+- **[Agent Skills](https://agentskills.io)** defines what a skill looks like (`SKILL.md`)
+
+Neither defines how an agent **discovers which skills are installed** in a project. Each agent hardcodes its own skills directory:
+
+| Agent | Skills path |
+|-------|------------|
+| Claude Code | `.claude/skills/` |
+| OpenAI Codex | `.agents/skills/` |
+| GitHub Copilot | `.github/skills/` |
+| Cursor | `.cursor/skills/` |
+
+A project using APM installs skills to `.skills/` — a vendor-neutral location. But agents don't scan arbitrary directories. They need to be told.
+
+`@skill:` is a text convention that bridges this gap. It's a human-readable, machine-parseable reference that tells agents exactly which skills to load and where to find them.
+
+## Syntax
+
+```
+@skill:<scope>/<name>
+```
+
+### Components
+
+| Part | Description | Constraints |
+|------|-------------|-------------|
+| `@skill:` | Prefix. Identifies this as a skill reference. | Literal string, case-sensitive |
+| `<scope>` | The skill scope, typically derived from the GitHub org or user. | Lowercase alphanumeric and hyphens. No leading/trailing hyphens. |
+| `/` | Separator | Literal `/` |
+| `<name>` | The skill name, matching the `name` field in the skill's `SKILL.md` frontmatter. | Lowercase alphanumeric and hyphens. Must match the [Agent Skills naming rules](https://agentskills.io/specification). |
+
+### Examples
+
+```
+@skill:anthropics/code-review
+@skill:cloudflare/workers-standards
+@skill:myorg/testing-conventions
+```
+
+### Invalid
+
+```
+@skill:code-review            # missing scope
+@skill:Anthropics/Code-Review  # uppercase not allowed
+@skill:anthropics/code review  # spaces not allowed
+```
+
+## Resolution
+
+When an agent encounters `@skill:scope/name`, it resolves to:
+
+```
+.skills/<scope>/<name>/SKILL.md
+```
+
+Relative to the project root (the nearest ancestor directory containing `apm-lock.json` or `.git`).
+
+### Resolution steps
+
+1. Parse `scope` and `name` from the reference
+2. Locate the project root
+3. Construct the path: `.skills/{scope}/{name}/SKILL.md`
+4. Read and activate the skill using the [Agent Skills progressive disclosure](https://agentskills.io/specification) model
+
+### Fallback
+
+If the resolved path does not exist, the agent should:
+1. Check `apm-lock.json` to confirm the package is listed (it may need `apm install` to restore)
+2. Warn the user that the skill is referenced but not installed
+3. Continue without the skill — never fail silently or halt
+
+## Where references appear
+
+`@skill:` references are plain text. They can appear in any markdown file an agent reads:
+
+| Location | Use case |
+|----------|----------|
+| `AGENTS.md` | Central skill list for the project |
+| `CLAUDE.md` | Claude Code-specific skill set |
+| `.cursorrules` | Cursor-specific skill set |
+| `GEMINI.md` | Gemini-specific skill set |
+| Any `.md` file | Scoped or context-specific skills |
+
+This means different agents can load different subsets of installed skills based on which config files they read.
+
+### Managed block
+
+`apm init` writes a minimal block into `AGENTS.md`:
+
+```markdown
+<!-- apm:skills -->
+## Installed Skills
+
+See .skills/apm/init/SKILL.md for the APM skill specification.
+<!-- /apm:skills -->
+```
+
+The `<!-- apm:skills -->` / `<!-- /apm:skills -->` markers define the region managed by APM tooling. Content outside these markers is never modified by APM.
+
+The project-level block points to the locally installed `@apm/init` skill, which contains the `@skill:` resolution rule and a routing table for search and install. No URL fetch needed — the spec is on disk, version-controlled, and available offline.
+
+## Relationship to apm-lock.json
+
+`apm-lock.json` is the skill index — it lists every installed skill with metadata:
+
+```json
+{
+  "lockfileVersion": 2,
+  "packages": {
+    "@anthropics/code-review": {
+      "sourceRepo": "anthropics/knowledge-work-plugins",
+      "sourcePath": "engineering/skills/code-review/SKILL.md",
+      "sourceRef": "main",
+      "description": "Review code changes for security, performance, and correctness.",
+      "kind": "composite",
+      "dependencies": [
+        "@anthropics/variable-scoping",
+        "@anthropics/testing-patterns"
+      ],
+      "tags": ["code-review", "security"]
+    }
+  }
+}
+```
+
+`apm-lock.json` is the single source of truth for which skills are installed. `@skill:` references are a syntax for pointing agents at specific skills — they can appear in any markdown file across the project (code comments, PR descriptions, issue templates, READMEs).
+
+| | `@skill:` reference | `apm-lock.json` |
+|--|---------------------|-----------------|
+| **Purpose** | Point an agent at a specific skill | Index of all installed skills |
+| **Audience** | Agents (inline in any markdown) | Agents + tooling (APM CLI, editors, CI) |
+| **Scope** | Contextual — anywhere a skill is relevant | Per-project (global) |
+| **Format** | Inline text | Structured JSON |
+
+Agents discover the full list of available skills from `apm-lock.json`. `@skill:` references provide an additional way to call out specific skills in context.
+
+## Current agent support
+
+No agent natively resolves `@skill:` today. The practical flow relies on `apm init` injecting a reference to the locally installed `@apm/init` skill into `AGENTS.md`. The spec skill contains the resolution rule and a routing table for search and install.
+
+All agents follow references and prose instructions. The `@skill:` syntax gives inline skill references a consistent, parseable name — making native resolution a small step for agent products to take.
+
+### What native resolution looks like
+
+When an agent natively supports `@skill:`, the flow simplifies to:
+
+1. Agent scans config files for `@skill:` references
+2. For each reference, reads `.skills/scope/name/SKILL.md`
+3. Activates the skill using progressive disclosure
+
+No reference-chaining needed. No intermediate files.
+
+## Design principles
+
+### Explicit activation
+
+Skills are system prompt instructions. They change how an agent behaves. A skill should never load without the user explicitly referencing it.
+
+`@skill:` makes activation visible and auditable. You can `grep` a project for `@skill:` to see exactly which skills each agent will load.
+
+### Vendor-neutral
+
+The `.skills/` directory and `@skill:` syntax are not tied to any agent product. Any agent that reads markdown can follow the convention.
+
+### No build step
+
+`@skill:` is plain text. It requires no preprocessing, no compilation, no runtime dependency. An agent can resolve it by string matching and file reading.
+
+### Composable
+
+Different config files can reference different skills. A team might use:
+
+```markdown
+# AGENTS.md — shared across all agents
+@skill:myorg/testing-standards
+@skill:myorg/api-conventions
+```
+
+```markdown
+# CLAUDE.md — Claude-specific
+@skill:anthropics/code-review
+```
+
+```markdown
+# .cursorrules — Cursor-specific
+@skill:myorg/frontend-patterns
+```
+
+## Future considerations
+
+- **Native agent resolution** — as agents adopt `@skill:`, the reference chain through `AGENTS.md` becomes unnecessary
+- **Skill versioning** — `@skill:scope/name@version` syntax for pinning specific versions
+- **Conditional loading** — skills that activate only for certain file types or directories
+- **Discovery from lockfile** — agents reading `apm-lock.json` directly to discover available skills without explicit `@skill:` references
