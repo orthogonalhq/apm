@@ -19,11 +19,13 @@ struct Cli {
 #[derive(Subcommand)]
 enum Commands {
     /// Install a skill by scoped name, or restore all from lockfile
+    #[command(alias = "i")]
     Install {
         /// Scoped package name (@scope/name). Omit to install all from lockfile.
         package: Option<String>,
     },
     /// Update all installed skills to their latest versions
+    #[command(alias = "up")]
     Update,
     /// Search for skills
     Search {
@@ -36,6 +38,7 @@ enum Commands {
         package: String,
     },
     /// Uninstall a skill by scoped name (e.g. @anthropics/code-review)
+    #[command(alias = "u")]
     Uninstall {
         /// Scoped package name (@scope/name)
         package: String,
