@@ -47,14 +47,34 @@ cargo build --release
 
 ## Quick start
 
-### 1. Search and install
+### 1. Search for skills
 
 ```bash
 apm search "code review"
+```
+
+Results show the scoped name, stars, license, and description for each match:
+
+```
+Found 10 skill(s) matching 'code review':
+
+  @anthropics/code-review (★ 9330 · Apache-2.0)
+  Review code changes for security, performance, and correctness.
+  anthropics/knowledge-work-plugins
+
+  @cloudflare/code-review (★ 4480 · CC-BY-4.0)
+  Reviews Workers and Cloudflare Developer Platform code.
+  cloudflare/cloudflare-docs
+  ...
+```
+
+### 2. Install a skill
+
+```bash
 apm install @anthropics/code-review
 ```
 
-APM fetches the skill and writes it to your project:
+APM fetches the skill from the registry and writes it to your project:
 
 ```
 your-project/
@@ -65,7 +85,7 @@ your-project/
             └── SKILL.md
 ```
 
-### 2. Set up agent discovery
+### 3. Set up agent discovery
 
 ```bash
 apm init
@@ -88,7 +108,7 @@ After setup, your `AGENTS.md` looks like:
 <!-- /apm:skills -->
 ```
 
-### 3. Reference from your agent config
+### 4. Reference from your agent config
 
 Point your agent at `AGENTS.md`:
 
@@ -101,7 +121,7 @@ Point your agent at `AGENTS.md`:
 
 `apm init` can do this for you — it detects your agent config files and offers to add the reference.
 
-### 4. Manage your skills
+### 5. Manage your skills
 
 ```bash
 # Update all skills to latest
