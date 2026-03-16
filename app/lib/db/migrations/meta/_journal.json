@@ -43,6 +43,13 @@
       "when": 1773699296611,
       "tag": "0005_first_solo",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1773702528522,
+      "tag": "0006_lyrical_lightspeed",
+      "breakpoints": true
     }
   ]
 }
