@@ -72,6 +72,10 @@ impl Lockfile {
         Ok(())
     }
 
+    pub fn remove_package(&mut self, name: &str) {
+        self.packages.remove(name);
+    }
+
     pub fn add_package(
         &mut self,
         name: &str,

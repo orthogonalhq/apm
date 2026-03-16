@@ -33,6 +33,11 @@ enum Commands {
         /// Scoped package name (@scope/name)
         package: String,
     },
+    /// Uninstall a skill by scoped name (e.g. @anthropics/code-review)
+    Uninstall {
+        /// Scoped package name (@scope/name)
+        package: String,
+    },
     /// Validate a local SKILL.md file
     Validate {
         /// Path to SKILL.md or directory containing one
@@ -66,6 +71,10 @@ async fn main() -> anyhow::Result<()> {
         Commands::Info { package } => {
             let (scope, name) = parse_scoped_name(&package)?;
             commands::info::run(&cli.registry, &scope, &name).await
+        }
+        Commands::Uninstall { package } => {
+            let (scope, name) = parse_scoped_name(&package)?;
+            commands::uninstall::run(&scope, &name)
         }
         Commands::Validate { path } => commands::validate::run(&path),
     }
