@@ -1,6 +1,6 @@
 // ── Core package types ──
 
-export type PackageKind = "skill" | "composite-skill" | "workflow" | "app";
+export type PackageKind = "skill" | "composite" | "workflow" | "app";
 export type PackageStatus = "active" | "deprecated" | "archived";
 
 /** Canonical display name: @scope/name */

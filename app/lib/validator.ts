@@ -11,6 +11,14 @@ export function validateSkillMd(
 ): ValidationResult {
   const errors: string[] = [];
 
+  // Check for frontmatter delimiters before parsing
+  if (!content.trimStart().startsWith("---")) {
+    return {
+      valid: false,
+      errors: ["No YAML frontmatter found (must start with ---)"],
+    };
+  }
+
   let parsed: matter.GrayMatterFile<string>;
   try {
     parsed = matter(content);
@@ -27,13 +35,10 @@ export function validateSkillMd(
     if (fm.name.length > MAX_NAME_LENGTH) {
       errors.push(`name must be at most ${MAX_NAME_LENGTH} characters`);
     }
-    if (!NAME_REGEX.test(fm.name)) {
+    if (!NAME_REGEX.test(fm.name) || fm.name.includes("--")) {
       errors.push(
-        "name must be lowercase alphanumeric with hyphens, no leading/trailing/consecutive hyphens"
+        "name must be lowercase alphanumeric with hyphens (no leading, trailing, or consecutive hyphens)"
       );
-    }
-    if (fm.name.includes("--")) {
-      errors.push("name must not contain consecutive hyphens");
     }
     if (parentDirName && fm.name !== parentDirName) {
       errors.push(
@@ -49,6 +54,43 @@ export function validateSkillMd(
     errors.push(
       `description must be at most ${MAX_DESCRIPTION_LENGTH} characters`
     );
+  }
+
+  // Validate kind
+  const kind = typeof fm.kind === "string" ? fm.kind : undefined;
+  if (kind && kind !== "skill" && kind !== "composite") {
+    errors.push(`kind must be "skill" or "composite", got "${kind}"`);
+  }
+
+  // Validate dependencies
+  const deps = Array.isArray(fm.dependencies)
+    ? (fm.dependencies as unknown[]).filter(
+        (d): d is string => typeof d === "string"
+      )
+    : [];
+
+  const isComposite = kind === "composite";
+
+  if (isComposite && deps.length === 0) {
+    errors.push(
+      "composite skills must declare at least one dependency"
+    );
+  }
+
+  if (deps.length > 0 && !isComposite) {
+    errors.push(
+      'dependencies declared but kind is not "composite" — add kind: composite to frontmatter'
+    );
+  }
+
+  for (const dep of deps) {
+    const stripped = dep.startsWith("@") ? dep.slice(1) : dep;
+    const parts = stripped.split("/");
+    if (parts.length !== 2 || !parts[0] || !parts[1]) {
+      errors.push(
+        `invalid dependency format: "${dep}" — expected @scope/name`
+      );
+    }
   }
 
   if (errors.length > 0) {
