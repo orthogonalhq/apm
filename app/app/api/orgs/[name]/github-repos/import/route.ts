@@ -271,6 +271,11 @@ export async function POST(
     }
   }
 
+  // Link the repo to this scope so AutoSync becomes available
+  if (imported > 0 && scope.webhookRepo !== repo) {
+    await db.update(scopes).set({ webhookRepo: repo }).where(eq(scopes.id, scope.id));
+  }
+
   await db.insert(auditLog).values({
     actorId: publisher.id,
     actorType: "publisher",
