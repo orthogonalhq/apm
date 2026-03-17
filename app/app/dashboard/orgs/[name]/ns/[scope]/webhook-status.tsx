@@ -14,9 +14,11 @@ interface WebhookInfo {
 
 export function WebhookStatus({
   orgName,
+  scopeName,
   repo,
 }: {
   orgName: string;
+  scopeName: string;
   repo: string;
 }) {
   const [status, setStatus] = useState<WebhookInfo | null>(null);
@@ -28,7 +30,7 @@ export function WebhookStatus({
     setLoading(true);
     try {
       const res = await fetch(
-        `/api/orgs/${orgName}/webhook?repo=${encodeURIComponent(repo)}`
+        `/api/orgs/${orgName}/webhook?repo=${encodeURIComponent(repo)}&scope=${encodeURIComponent(scopeName)}`
       );
       if (res.ok) {
         setStatus(await res.json());
@@ -50,7 +52,7 @@ export function WebhookStatus({
       const res = await fetch(`/api/orgs/${orgName}/webhook`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ repo }),
+        body: JSON.stringify({ repo, scope: scopeName }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -72,7 +74,7 @@ export function WebhookStatus({
       const res = await fetch(`/api/orgs/${orgName}/webhook`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ repo, hookId: status.hookId }),
+        body: JSON.stringify({ repo, hookId: status.hookId, scope: scopeName }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));

@@ -9,18 +9,20 @@ function countTokens(text: string): number {
   return Math.ceil(text.length / 4);
 }
 
-const WEBHOOK_SECRET = process.env.GITHUB_WEBHOOK_SECRET;
-
-function verifySignature(payload: string, signature: string | null): boolean {
-  if (!WEBHOOK_SECRET || !signature) return false;
+function verifySignature(payload: string, signature: string | null, secret: string): boolean {
+  if (!secret || !signature) return false;
   const expected = `sha256=${crypto
-    .createHmac("sha256", WEBHOOK_SECRET)
+    .createHmac("sha256", secret)
     .update(payload)
     .digest("hex")}`;
-  return crypto.timingSafeEqual(
-    Buffer.from(signature),
-    Buffer.from(expected)
-  );
+  try {
+    return crypto.timingSafeEqual(
+      Buffer.from(signature),
+      Buffer.from(expected)
+    );
+  } catch {
+    return false;
+  }
 }
 
 /** POST /api/webhooks/github — handle push events */
@@ -29,11 +31,6 @@ export async function POST(req: NextRequest) {
   const signature = req.headers.get("x-hub-signature-256");
   const event = req.headers.get("x-github-event");
 
-  // Verify webhook signature
-  if (!verifySignature(body, signature)) {
-    return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
-  }
-
   // Only handle push events
   if (event !== "push") {
     return NextResponse.json({ ok: true, skipped: event });
@@ -41,16 +38,32 @@ export async function POST(req: NextRequest) {
 
   const payload = JSON.parse(body);
   const repo = payload.repository?.full_name;
+
+  if (!repo) {
+    return NextResponse.json({ error: "No repository in payload" }, { status: 400 });
+  }
+
+  // Look up the scope that has this repo's webhook configured
+  const [scope] = await db
+    .select()
+    .from(scopes)
+    .where(eq(scopes.webhookRepo, repo))
+    .limit(1);
+
+  if (!scope || !scope.webhookSecret) {
+    return NextResponse.json({ error: "No webhook configured for this repo" }, { status: 404 });
+  }
+
+  // Verify signature using the per-scope secret
+  if (!verifySignature(body, signature, scope.webhookSecret)) {
+    return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
+  }
   const ref = payload.ref; // e.g. "refs/heads/main"
   const defaultBranch = payload.repository?.default_branch ?? "main";
 
   // Only process pushes to the default branch
   if (ref !== `refs/heads/${defaultBranch}`) {
     return NextResponse.json({ ok: true, skipped: "not default branch" });
-  }
-
-  if (!repo) {
-    return NextResponse.json({ error: "No repository in payload" }, { status: 400 });
   }
 
   // Collect all SKILL.md files that were added or modified
