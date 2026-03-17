@@ -200,34 +200,6 @@ apm Updating 4 package(s)...
 apm All packages updated
 ```
 
-## `apm publish`
-
-Publish a skill to the APM registry.
-
-```bash
-apm publish [path] --scope <scope>
-```
-
-**What it does:**
-
-1. Reads `SKILL.md` from the given path (or current directory)
-2. Detects the git remote, branch, and relative path automatically
-3. Sends the git pointer to the registry — the registry fetches and validates the SKILL.md
-4. Upserts the package record under the specified scope
-
-**Authentication:** Requires an `APM_TOKEN` environment variable or a token saved at `~/.apm/token`. Create tokens at [apm.orthg.nl/settings](https://apm.orthg.nl/settings).
-
-**Example:**
-
-```bash
-$ apm publish --scope apm
-apm Publishing @apm/init...
-  → orthogonalhq/apm-skills:init/SKILL.md (ref: main)
-apm Published @apm/init
-```
-
-**Dependencies must be published first.** If a composite skill references dependencies that don't exist in the registry, the publish fails with a list of missing packages.
-
 ## `apm search`
 
 Search for skills in the registry.
@@ -378,7 +350,6 @@ Commit `apm-lock.json` to version control.
 | `apm install` | `apm i` | Restore all from lockfile (with integrity check) |
 | `apm uninstall @scope/name` | `apm u` | Remove a skill |
 | `apm update` | `apm up` | Re-fetch latest with change detection |
-| `apm publish [path] --scope <scope>` | | Publish a skill to the registry |
 | `apm search <query>` | | Search the registry |
 | `apm info @scope/name` | | Show skill details |
 | `apm validate <path>` | | Validate a SKILL.md |
@@ -388,4 +359,3 @@ Commit `apm-lock.json` to version control.
 | Variable | Description |
 |----------|-------------|
 | `APM_REGISTRY` | Override the default registry URL. Same as `--registry`. |
-| `APM_TOKEN` | Authentication token for `apm publish`. Also reads from `~/.apm/token`. |

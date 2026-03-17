@@ -45,16 +45,6 @@ enum Commands {
         /// Scoped package name (@scope/name)
         package: String,
     },
-    /// Publish a skill to the APM registry
-    Publish {
-        /// Path to SKILL.md or directory containing one (default: current dir)
-        #[arg(default_value = ".")]
-        path: String,
-
-        /// Scope to publish under
-        #[arg(long)]
-        scope: String,
-    },
     /// Validate a local SKILL.md file
     Validate {
         /// Path to SKILL.md or directory containing one
@@ -97,9 +87,6 @@ async fn main() -> anyhow::Result<()> {
         Commands::Uninstall { package } => {
             let (scope, name) = parse_scoped_name(&package)?;
             commands::uninstall::run(&scope, &name)
-        }
-        Commands::Publish { path, scope } => {
-            commands::publish::run(&cli.registry, &scope, &path).await
         }
         Commands::Validate { path } => commands::validate::run(&path),
     }
