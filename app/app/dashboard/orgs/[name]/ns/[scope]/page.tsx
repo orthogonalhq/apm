@@ -106,7 +106,7 @@ export default async function NamespacePage({
     .at(-1)?.toISOString() ?? null;
 
   return (
-    <div className="px-6 md:px-12 lg:px-20 py-12 max-w-4xl mx-auto">
+    <div className="px-6 md:px-12 lg:px-20 py-12 max-w-7xl mx-auto">
       {/* Back */}
       <Link
         href={`/dashboard/orgs/${name}`}

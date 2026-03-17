@@ -108,7 +108,7 @@ export default async function SettingsPage() {
     .where(eq(personalAccessTokens.publisherId, publisher.id));
 
   return (
-    <div className="px-6 md:px-12 lg:px-20 py-12 max-w-4xl mx-auto">
+    <div className="px-6 md:px-12 lg:px-20 py-12 max-w-7xl mx-auto">
       {/* Profile */}
       <section className="mb-12">
         <h1 className="font-mono text-sm tracking-[0.08em] uppercase t-meta mb-6">
