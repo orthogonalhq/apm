@@ -25,7 +25,7 @@ interface SearchResult {
 function KindBadge({ kind }: { kind: string }) {
   const colors: Record<string, string> = {
     skill: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
-    "composite-skill": "bg-blue-500/10 text-blue-400 border-blue-500/20",
+    "composite": "bg-blue-500/10 text-blue-400 border-blue-500/20",
     workflow: "bg-amber-500/10 text-amber-400 border-amber-500/20",
     app: "bg-purple-500/10 text-purple-400 border-purple-500/20",
   };

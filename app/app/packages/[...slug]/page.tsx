@@ -21,7 +21,7 @@ const BASE_URL = process.env.VERCEL_URL
 
 const kindColors: Record<string, string> = {
   skill: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
-  "composite-skill": "bg-blue-500/10 text-blue-400 border-blue-500/20",
+  "composite": "bg-blue-500/10 text-blue-400 border-blue-500/20",
   workflow: "bg-amber-500/10 text-amber-400 border-amber-500/20",
   app: "bg-purple-500/10 text-purple-400 border-purple-500/20",
 };
@@ -127,7 +127,7 @@ function formatLicense(license: string | null): string {
 function formatKind(kind: string | null): string {
   switch (kind) {
     case "skill":
-    case "composite-skill":
+    case "composite":
       return "Skill";
     case "workflow":
       return "Workflow";
@@ -142,7 +142,7 @@ function formatType(kind: string | null): string | null {
   switch (kind) {
     case "skill":
       return "Atomic";
-    case "composite-skill":
+    case "composite":
       return "Composite";
     default:
       return null;
