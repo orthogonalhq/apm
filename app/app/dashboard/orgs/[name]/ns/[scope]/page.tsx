@@ -94,8 +94,15 @@ export default async function NamespacePage({
 
   const isOwnerOrAdmin = ["owner", "admin"].includes(membership.role);
 
-  // Find the connected repo (from the first package's sourceRepo)
-  const connectedRepo = scopePackages.find((p) => p.sourceRepo)?.sourceRepo ?? null;
+  // Connected repo comes from the scope's webhookRepo field (authoritative)
+  const connectedRepo = scope.webhookRepo ?? null;
+
+  // Last sync time: latest lastUpdatedAt across all packages in this scope
+  const lastSyncAt = scopePackages
+    .map((p) => p.lastUpdatedAt)
+    .filter(Boolean)
+    .sort()
+    .at(-1) ?? null;
 
   return (
     <div className="px-6 md:px-12 lg:px-20 py-12 max-w-4xl mx-auto">
@@ -156,7 +163,7 @@ export default async function NamespacePage({
           <h2 className="font-mono text-sm tracking-[0.08em] uppercase t-meta mb-4">
             Sync from GitHub
           </h2>
-          <SyncFromGitHub orgName={name} scopeName={scopeName} />
+          <SyncFromGitHub orgName={name} scopeName={scopeName} connectedRepo={connectedRepo} lastSyncAt={lastSyncAt} />
         </section>
       )}
 
