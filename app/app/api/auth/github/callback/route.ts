@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createSession, findOrCreatePublisher } from "@/lib/auth/session";
+import { db } from "@/lib/db";
+import { orgMembers } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
 
 export async function GET(req: NextRequest) {
   const code = req.nextUrl.searchParams.get("code");
@@ -71,5 +74,13 @@ export async function GET(req: NextRequest) {
 
   await createSession(publisherId);
 
-  return NextResponse.redirect(new URL("/", req.url));
+  // Check if user has any org memberships — if not, onboard them
+  const memberships = await db
+    .select({ orgId: orgMembers.orgId })
+    .from(orgMembers)
+    .where(eq(orgMembers.publisherId, publisherId))
+    .limit(1);
+
+  const redirectTo = memberships.length === 0 ? "/onboarding" : "/";
+  return NextResponse.redirect(new URL(redirectTo, req.url));
 }

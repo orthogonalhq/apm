@@ -24,7 +24,7 @@ export async function GET() {
   const params = new URLSearchParams({
     client_id: clientId,
     redirect_uri: `${process.env.NEXT_PUBLIC_URL}/api/auth/github/callback`,
-    scope: "read:user user:email read:org",
+    scope: "read:user user:email read:org repo admin:repo_hook",
     state,
   });
 

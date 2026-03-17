@@ -3,7 +3,8 @@ import { db, schema } from "@/lib/db";
 import { and, eq, sql } from "drizzle-orm";
 import { parseScopedSlug, findPackage } from "@/lib/package-params";
 import { resolveToken, canPublishToScope } from "@/lib/auth/tokens";
-import { scopes, auditLog } from "@/lib/db/schema";
+import { getPublisher } from "@/lib/auth/session";
+import { scopes, orgMembers, auditLog } from "@/lib/db/schema";
 
 export async function GET(
   _request: NextRequest,
@@ -359,4 +360,72 @@ export async function PUT(
     },
     { status: existing ? 200 : 201 }
   );
+}
+
+// DELETE /api/packages/@scope/name — delete a package
+export async function DELETE(
+  _request: NextRequest,
+  { params }: { params: Promise<{ slug: string[] }> }
+) {
+  const { slug } = await params;
+  const parsed = parseScopedSlug(slug);
+
+  if (!parsed || parsed.rest.length > 0) {
+    return NextResponse.json(
+      { error: "Invalid package path. Use @scope/name" },
+      { status: 400 }
+    );
+  }
+
+  // Auth via session (GUI) or token (API)
+  const publisher = await getPublisher();
+  if (!publisher) {
+    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  }
+
+  const pkg = await findPackage(parsed.scope, parsed.name);
+  if (!pkg) {
+    return NextResponse.json({ error: "Package not found" }, { status: 404 });
+  }
+
+  // Verify the user has permission (org owner/admin of the scope's org)
+  if (pkg.scopeId) {
+    const [scope] = await db
+      .select({ orgId: scopes.orgId })
+      .from(scopes)
+      .where(eq(scopes.id, pkg.scopeId))
+      .limit(1);
+
+    if (scope) {
+      const [membership] = await db
+        .select()
+        .from(orgMembers)
+        .where(
+          and(
+            eq(orgMembers.orgId, scope.orgId),
+            eq(orgMembers.publisherId, publisher.id)
+          )
+        )
+        .limit(1);
+
+      if (!membership || !["owner", "admin"].includes(membership.role)) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
+    }
+  }
+
+  await db
+    .delete(schema.packages)
+    .where(eq(schema.packages.id, pkg.id));
+
+  await db.insert(auditLog).values({
+    actorId: publisher.id,
+    actorType: "publisher",
+    action: "package.delete",
+    targetType: "package",
+    targetId: pkg.id,
+    metadata: { scope: parsed.scope, name: parsed.name },
+  });
+
+  return NextResponse.json({ ok: true });
 }

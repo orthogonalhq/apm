@@ -159,9 +159,9 @@ export const publisherAuthMethods = pgTable(
   ]
 );
 
-// ── Scopes ────────────────────────────────────────────────
-export const scopes = pgTable(
-  "scopes",
+// ── Organizations ─────────────────────────────────────────
+export const organizations = pgTable(
+  "organizations",
   {
     id: uuid("id")
       .primaryKey()
@@ -169,19 +169,66 @@ export const scopes = pgTable(
     name: varchar("name", { length: 64 }).notNull().unique(),
     displayName: varchar("display_name", { length: 256 }),
     description: varchar("description", { length: 1024 }),
+    avatarUrl: varchar("avatar_url", { length: 512 }),
     url: varchar("url", { length: 512 }),
+    email: varchar("email", { length: 256 }),
     verified: boolean("verified").default(false),
     verificationMethod: varchar("verification_method", { length: 16 }),
-    reservedFor: varchar("reserved_for", { length: 256 }),
+    status: varchar("status", { length: 16 }).notNull().default("active"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),
-    status: varchar("status", { length: 16 }).notNull().default("active"),
   },
-  (table) => [index("idx_scopes_status").on(table.status)]
+  (table) => [index("idx_orgs_status").on(table.status)]
 );
 
-// ── Scope Members ─────────────────────────────────────────
+// ── Org Members ──────────────────────────────────────────
+export const orgMembers = pgTable(
+  "org_members",
+  {
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    publisherId: uuid("publisher_id")
+      .notNull()
+      .references(() => publishers.id, { onDelete: "cascade" }),
+    role: varchar("role", { length: 16 }).notNull().default("member"),
+    invitedBy: uuid("invited_by").references(() => publishers.id),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.orgId, table.publisherId] }),
+    index("idx_org_members_publisher").on(table.publisherId),
+  ]
+);
+
+// ── Scopes ────────────────────────────────────────────────
+export const scopes = pgTable(
+  "scopes",
+  {
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    name: varchar("name", { length: 64 }).notNull().unique(),
+    verified: boolean("verified").default(false),
+    status: varchar("status", { length: 16 }).notNull().default("active"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("idx_scopes_org").on(table.orgId),
+    index("idx_scopes_status").on(table.status),
+  ]
+);
+
+// ── Scope Members (deprecated — use org_members) ─────────
+// Kept temporarily for migration. Will be dropped.
 export const scopeMembers = pgTable(
   "scope_members",
   {
@@ -214,7 +261,9 @@ export const personalAccessTokens = pgTable(
       .notNull()
       .references(() => publishers.id, { onDelete: "cascade" }),
     name: varchar("name", { length: 256 }).notNull(),
+    description: varchar("description", { length: 512 }),
     tokenHash: varchar("token_hash", { length: 256 }).notNull(),
+    tokenHint: varchar("token_hint", { length: 16 }),
     scopeId: uuid("scope_id").references(() => scopes.id, {
       onDelete: "cascade",
     }),
@@ -301,6 +350,8 @@ export type NewPackageRecord = typeof packages.$inferInsert;
 export type PackageDependencyRecord =
   typeof packageDependencies.$inferSelect;
 export type PublisherRecord = typeof publishers.$inferSelect;
+export type OrganizationRecord = typeof organizations.$inferSelect;
+export type OrgMemberRecord = typeof orgMembers.$inferSelect;
 export type ScopeRecord = typeof scopes.$inferSelect;
 export type ScopeMemberRecord = typeof scopeMembers.$inferSelect;
 export type AuditLogRecord = typeof auditLog.$inferSelect;

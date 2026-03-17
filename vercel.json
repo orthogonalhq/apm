@@ -4,5 +4,6 @@
       "path": "/api/indexer",
       "schedule": "0 0 * * *"
     }
-  ]
+  ],
+  "neonBranching": false
 }

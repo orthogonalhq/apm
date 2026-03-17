@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getPublisher } from "@/lib/auth/session";
 import { db } from "@/lib/db";
-import { publisherAuthMethods, scopeMembers, scopes } from "@/lib/db/schema";
+import { publisherAuthMethods, orgMembers, organizations } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 
 export async function GET() {
@@ -21,13 +21,13 @@ export async function GET() {
 
   const memberships = await db
     .select({
-      scopeName: scopes.name,
-      scopeVerified: scopes.verified,
-      role: scopeMembers.role,
+      orgName: organizations.name,
+      orgVerified: organizations.verified,
+      role: orgMembers.role,
     })
-    .from(scopeMembers)
-    .innerJoin(scopes, eq(scopes.id, scopeMembers.scopeId))
-    .where(eq(scopeMembers.publisherId, publisher.id));
+    .from(orgMembers)
+    .innerJoin(organizations, eq(organizations.id, orgMembers.orgId))
+    .where(eq(orgMembers.publisherId, publisher.id));
 
   return NextResponse.json({
     id: publisher.id,
@@ -36,6 +36,6 @@ export async function GET() {
     avatarUrl: publisher.avatarUrl,
     createdAt: publisher.createdAt,
     authMethods,
-    scopes: memberships,
+    organizations: memberships,
   });
 }
