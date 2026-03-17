@@ -75,6 +75,7 @@ export async function GET(
       featured: pkg.featured,
       status: pkg.status,
       hosted: pkg.hosted,
+      lastUpdatedAt: pkg.lastUpdatedAt,
       firstIndexedAt: pkg.firstIndexedAt,
       lastIndexedAt: pkg.lastIndexedAt,
       lastCommitSha: pkg.lastCommitSha,

@@ -30,6 +30,7 @@ export async function GET(request: NextRequest) {
       category: schema.packages.category,
       tags: schema.packages.tags,
       compatibility: schema.packages.compatibility,
+      language: schema.packages.language,
       sourceRepo: schema.packages.sourceRepo,
       repoOwner: schema.packages.repoOwner,
       author: schema.packages.author,
