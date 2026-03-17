@@ -40,15 +40,15 @@ List packages with pagination and sorting.
 {
   "data": [
     {
-      "scope": "anthropics",
-      "name": "code-review",
-      "description": "Systematic code review checklist",
+      "scope": "apm",
+      "name": "install",
+      "description": "Install an APM skill by scoped name",
       "kind": "skill",
-      "sourceRepo": "anthropics/skills",
-      "repoOwner": "anthropics",
-      "repoStars": 87,
+      "sourceRepo": "orthogonalhq/apm-skills",
+      "repoOwner": "orthogonalhq",
+      "repoStars": 12,
       "license": "MIT",
-      "lastIndexedAt": "2026-03-14T00:00:00.000Z"
+      "lastIndexedAt": "2026-03-17T00:00:00.000Z"
     }
   ],
   "total": 142,
@@ -68,24 +68,82 @@ Get full details for a single package.
 ```json
 {
   "id": "uuid",
-  "scope": "anthropics",
-  "name": "code-review",
-  "description": "Systematic code review checklist",
+  "scope": "apm",
+  "name": "install",
+  "description": "Install an APM skill by scoped name",
   "kind": "skill",
-  "sourceRepo": "anthropics/skills",
-  "sourcePath": "code-review",
+  "category": "tooling",
+  "tags": ["cli", "install"],
+  "compatibility": ["claude", "cursor"],
+  "language": "en",
+  "version": "1.0.0",
+  "sourceRepo": "orthogonalhq/apm-skills",
+  "sourcePath": "install",
   "sourceRef": "main",
-  "repoOwner": "anthropics",
-  "repoStars": 87,
+  "repoUrl": "https://github.com/orthogonalhq/apm-skills",
+  "homepageUrl": null,
+  "repoOwner": "orthogonalhq",
+  "author": "orthogonalhq",
+  "repoStars": 12,
   "license": "MIT",
-  "skillMdRaw": "---\nname: code-review\n...",
-  "frontmatter": { "name": "code-review", "description": "..." },
+  "skillMdRaw": "---\nname: install\n...",
+  "frontmatter": { "name": "install", "description": "..." },
+  "allowedTools": [],
+  "tokenCount": 450,
+  "fileCount": 1,
+  "progressiveDisclosure": false,
+  "downloadCount": 0,
+  "depCount": 0,
+  "dependantCount": 0,
+  "verified": true,
+  "featured": false,
+  "status": "active",
   "hosted": false,
-  "firstIndexedAt": "2026-03-01T00:00:00.000Z",
-  "lastIndexedAt": "2026-03-14T00:00:00.000Z",
-  "lastCommitSha": "abc123def456..."
+  "firstIndexedAt": "2026-03-17T00:00:00.000Z",
+  "lastIndexedAt": "2026-03-17T00:00:00.000Z",
+  "lastCommitSha": "ab54924ef311c6521e93f1f85fec24ca6b05e875"
 }
 ```
+
+**Field reference:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | string | Package UUID |
+| `scope` | string | Namespace (e.g. `apm`) |
+| `name` | string | Package name |
+| `description` | string | Human-readable description |
+| `kind` | string | `skill`, `composite`, `workflow`, or `app` |
+| `category` | string? | Category (e.g. `tooling`, `code-review`) |
+| `tags` | string[] | Searchable tags |
+| `compatibility` | string[] | Compatible agents (e.g. `claude`, `cursor`) |
+| `language` | string? | Primary language (e.g. `en`, `zh`) |
+| `version` | string? | Semver version (e.g. `1.0.0`) |
+| `sourceRepo` | string | GitHub `owner/repo` |
+| `sourcePath` | string | Directory path within the repo |
+| `sourceRef` | string | Git branch (usually `main`) |
+| `repoUrl` | string? | Full GitHub URL |
+| `homepageUrl` | string? | Project homepage |
+| `repoOwner` | string | GitHub owner |
+| `author` | string? | Package author |
+| `repoStars` | number | GitHub stars |
+| `license` | string? | SPDX license identifier |
+| `skillMdRaw` | string | Full SKILL.md content |
+| `frontmatter` | object | Parsed YAML frontmatter |
+| `allowedTools` | string[] | Tools the skill is allowed to use |
+| `tokenCount` | number | Approximate LLM token count |
+| `fileCount` | number | Number of files in the skill |
+| `progressiveDisclosure` | boolean | Whether the skill uses progressive disclosure |
+| `downloadCount` | number | Total download/install count |
+| `depCount` | number | Number of dependencies |
+| `dependantCount` | number | Number of packages depending on this |
+| `verified` | boolean | Whether the publisher is verified |
+| `featured` | boolean | Whether the package is featured |
+| `status` | string | `active`, `deprecated`, or `delisted` |
+| `hosted` | boolean | Whether hosted on APM (vs proxied from GitHub) |
+| `lastCommitSha` | string? | Git blob SHA of the SKILL.md file |
+| `firstIndexedAt` | string | ISO 8601 timestamp |
+| `lastIndexedAt` | string | ISO 8601 timestamp |
 
 **Errors:**
 
@@ -128,15 +186,14 @@ Full-text search across scopes, package names, and descriptions.
 {
   "results": [
     {
-      "scope": "anthropics",
-      "name": "code-review",
-      "description": "Systematic code review checklist",
+      "scope": "apm",
+      "name": "search",
+      "description": "Search the APM registry for agent skills",
       "kind": "skill",
-      "sourceRepo": "anthropics/skills",
-      "repoOwner": "anthropics",
-      "repoStars": 87,
-      "license": "MIT",
-      "lastIndexedAt": "2026-03-14T00:00:00.000Z"
+      "category": "tooling",
+      "sourceRepo": "orthogonalhq/apm-skills",
+      "tokenCount": 320,
+      "verified": true
     }
   ],
   "total": 3
@@ -167,15 +224,7 @@ Track a download/install event for a package. Increments the package's download 
 |--------|------|
 | `404` | `{ "error": "Not found" }` |
 
-The web UI calls this automatically when a user copies or downloads a SKILL.md file (once per page visit). The CLI should call this on `apm install`.
-
----
-
-### `POST /api/publish`
-
-Publish a package to the hosted registry.
-
-**Status:** Not yet implemented. Returns `501`.
+The web UI calls this automatically when a user copies or downloads a SKILL.md file (once per page visit). The CLI calls this on `apm install`.
 
 ---
 

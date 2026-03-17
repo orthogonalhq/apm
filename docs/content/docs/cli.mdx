@@ -32,7 +32,7 @@ apm init
 **What it does:**
 
 1. Creates `AGENTS.md` at project root if it doesn't exist
-2. Adds a skill resolution block to `AGENTS.md` — this teaches agents the `@skill:` syntax and points them to the APM spec
+2. Adds a skill resolution block to `AGENTS.md` — points agents to the locally installed `@apm/init` skill
 3. Lists your installed skills (from `apm-lock.json`) with descriptions
 4. Detects agent config files (`CLAUDE.md`, `.cursorrules`, `.github/copilot-instructions.md`, `GEMINI.md`, `.windsurfrules`) and offers to wire them to `AGENTS.md`
 
@@ -86,48 +86,63 @@ See [AGENTS.md](./AGENTS.md) for installed agent skills.
 <!-- /apm:skills -->
 ```
 
-See [Skill References](/docs/skill-references) for the full spec on the `@skill:` convention.
+See [Setting Up Skill Discovery](/docs/skill-references) for the full setup guide.
 
 ## `apm install` (alias: `apm i`)
 
 Install a skill by scoped name, or restore all from lockfile.
 
 ```bash
-# Install a single skill
+# Install a single skill (with dependencies)
 apm install @scope/name
 
 # Restore all skills from lockfile
 apm install
 ```
 
-**What it does:**
+**What it does (single package):**
 
 1. Fetches package metadata from the registry
 2. Creates `.skills/scope/name/` in your project root
 3. Writes the `SKILL.md` file
-4. Updates `apm-lock.json` with source info, description, kind, and tags
+4. Records `commitSha` and `integrity` hash in the lockfile
+5. Tracks the download with the registry
+6. **Recursively installs dependencies** — if the skill is a composite with `dependencies` in its frontmatter, all dependencies are fetched and installed automatically
 
-When run without arguments, re-fetches and installs all packages listed in `apm-lock.json`. Useful for cloning a project and restoring its skills.
+**What it does (from lockfile):**
+
+1. Re-fetches all packages listed in `apm-lock.json`
+2. **Verifies integrity** — compares the content hash against the lockfile. If content has changed since the lockfile was created, the install is blocked with a warning and a GitHub compare URL
+3. Useful for cloning a project and restoring its skills
 
 **Project root detection:** APM walks up from the current directory looking for `apm-lock.json`, `package.json`, `Cargo.toml`, or `.git`. Falls back to the current directory.
 
-**Example:**
+**Example (with dependencies):**
 
 ```bash
-$ apm install @anthropics/code-review
-apm Fetching @anthropics/code-review...
-apm Installed @anthropics/code-review to .skills/anthropics/code-review
+$ apm install @apm/init
+apm Fetching @apm/init...
+  ✓ @apm/init
+apm Fetching @apm/search...
+  ✓ @apm/search
+apm Fetching @apm/install...
+  ✓ @apm/install
+apm Fetching @apm/uninstall...
+  ✓ @apm/uninstall
 ```
 
-**Result:**
+**Example (integrity mismatch on lockfile restore):**
 
-```
-your-project/
-├── apm-lock.json
-└── .skills/
-    └── anthropics/
-        └── code-review/
-            └── SKILL.md
+```bash
+$ apm install
+apm Installing 4 package(s) from lockfile...
+  ↓ @apm/init...
+    ⚠ WARNING: Content has changed since lockfile was created.
+    Run apm update to review and accept changes.
+    Diff: https://github.com/orthogonalhq/apm-skills/compare/c476879...a3f1b2c
+  ↓ @apm/search... ✓
+  ↓ @apm/install... ✓
+  ↓ @apm/uninstall... ✓
 ```
 
 After installing, run `apm init` to wire skills into your agent configs.
@@ -155,7 +170,7 @@ apm Uninstalled @anthropics/code-review
 
 ## `apm update` (alias: `apm up`)
 
-Re-fetch latest versions for all installed skills.
+Re-fetch latest versions for all installed skills with change detection.
 
 ```bash
 apm update
@@ -165,17 +180,23 @@ apm update
 
 1. Reads all packages from `apm-lock.json`
 2. Fetches the latest version of each from the registry
-3. Overwrites the local `SKILL.md` files
-4. Updates the lockfile with latest metadata
+3. **Compares integrity hashes** — if content changed, shows a warning with a GitHub compare URL
+4. **Prompts for approval** — you must explicitly accept changes before the skill is updated
+5. Updates the lockfile with new `commitSha` and `integrity` hash
 
-**Example:**
+**Example (with changes):**
 
 ```bash
 $ apm update
-apm Updating 3 package(s)...
-  ↑ @anthropics/code-review... ✓
-  ↑ @cloudflare/code-review... ✓
-  ↑ @microsoft/code-review... ✓
+apm Updating 4 package(s)...
+  ↑ @apm/init...
+    ⚠ CHANGED: Content has changed.
+    Diff: https://github.com/orthogonalhq/apm-skills/compare/c476879...a3f1b2c
+    Accept changes? (y/N) y
+    ✓ Updated
+  ↑ @apm/search... ✓
+  ↑ @apm/install... ✓
+  ↑ @apm/uninstall... ✓
 apm All packages updated
 ```
 
@@ -277,34 +298,30 @@ $ apm validate ./bad-skill
 APM maintains an `apm-lock.json` file at your project root. It serves two purposes:
 
 1. **Reproducible installs** — run `apm install` on a fresh clone to restore all skills
-2. **Skill index** — metadata for tooling, editors, and agents to understand what's installed
-
-Since lockfile v2, each entry includes metadata from the SKILL.md frontmatter:
+2. **Tamper detection** — `commitSha` and `integrity` hash verify content hasn't changed
 
 ```json
 {
   "lockfileVersion": 2,
   "packages": {
-    "@anthropics/code-review": {
-      "sourceRepo": "anthropics/knowledge-work-plugins",
-      "sourcePath": "engineering/skills/code-review/SKILL.md",
+    "@apm/init": {
+      "sourceRepo": "orthogonalhq/apm-skills",
+      "sourcePath": "init",
       "sourceRef": "main",
-      "commitSha": null,
-      "integrity": null,
-      "description": "Review code changes for security, performance, and correctness.",
-      "kind": "skill",
-      "tags": ["code-review", "security"]
+      "commitSha": "c4768797c0ed8888deeb53bfc8069e68f4a7b671",
+      "integrity": "sha256-7651b8aa7e84f0e9e12c3a03fa3af745635446cbb5065c77ffefb95e3afe2f34",
+      "description": "APM skill resolution. Defines how @skill references resolve to installed SKILL.md files.",
+      "kind": "composite",
+      "dependencies": ["@apm/search", "@apm/install", "@apm/uninstall"]
     },
-    "@acme/full-stack-review": {
-      "sourceRepo": "acme/skills",
-      "sourcePath": "full-stack-review/SKILL.md",
+    "@apm/search": {
+      "sourceRepo": "orthogonalhq/apm-skills",
+      "sourcePath": "search",
       "sourceRef": "main",
-      "commitSha": null,
-      "integrity": null,
-      "description": "Comprehensive full-stack code review combining multiple skills.",
-      "kind": "composite-skill",
-      "dependencies": ["@anthropics/code-review", "@acme/testing-patterns"],
-      "tags": ["code-review", "composite"]
+      "commitSha": "280ccfcdf63eeeb8eddd971b7ce14a94fbca7186",
+      "integrity": "sha256-d3e393fd74682b18441313f251b9484688d9834952e6629ee992d830b1c37610",
+      "description": "Search the APM registry for agent skills.",
+      "kind": "skill"
     }
   }
 }
@@ -315,11 +332,11 @@ Since lockfile v2, each entry includes metadata from the SKILL.md frontmatter:
 | `sourceRepo` | GitHub repository |
 | `sourcePath` | Path to SKILL.md within the repo |
 | `sourceRef` | Git branch or tag |
-| `commitSha` | Pinned commit (when available) |
-| `integrity` | Content hash for verification (when available) |
+| `commitSha` | Pinned commit SHA — immutable reference to the exact content |
+| `integrity` | `sha256-` hash of the SKILL.md content — detects tampering |
 | `description` | One-line description from frontmatter |
-| `kind` | `skill`, `composite-skill`, `workflow`, or `app` |
-| `dependencies` | Scoped names of required skills (composite skills only) |
+| `kind` | `skill` or `composite` |
+| `dependencies` | Scoped names of required skills (composite only) |
 | `tags` | Tags from frontmatter |
 
 Commit `apm-lock.json` to version control.
@@ -329,10 +346,10 @@ Commit `apm-lock.json` to version control.
 | Command | Alias | Description |
 |---------|-------|-------------|
 | `apm init` | | Set up agent configs for your project |
-| `apm install @scope/name` | `apm i` | Install a skill |
-| `apm install` | `apm i` | Restore all from lockfile |
+| `apm install @scope/name` | `apm i` | Install a skill (with dependencies) |
+| `apm install` | `apm i` | Restore all from lockfile (with integrity check) |
 | `apm uninstall @scope/name` | `apm u` | Remove a skill |
-| `apm update` | `apm up` | Re-fetch latest for all skills |
+| `apm update` | `apm up` | Re-fetch latest with change detection |
 | `apm search <query>` | | Search the registry |
 | `apm info @scope/name` | | Show skill details |
 | `apm validate <path>` | | Validate a SKILL.md |

@@ -16,7 +16,6 @@ serde_yaml = "0.9"
 tokio = { version = "1", features = ["full"] }
 anyhow = "1"
 colored = "2"
-dirs = "5"
 hex = "0.4"
 regex-lite = "0.1"
 sha2 = "0.10"

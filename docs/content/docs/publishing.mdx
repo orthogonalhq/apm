@@ -5,12 +5,7 @@ description: How to get your skills into the APM registry
 
 ## Overview
 
-There are two ways to publish skills to APM:
-
-1. **GitHub Sync** — connect a GitHub repo from your dashboard and import SKILL.md files directly
-2. **Automatic indexing** — push a valid SKILL.md to any public GitHub repo and APM indexes it daily
-
-Both methods produce the same result — a published package under your `@scope` namespace.
+Publish skills to APM by connecting a GitHub repo from your dashboard. APM scans the repo, imports your SKILL.md files, and optionally auto-syncs on every push.
 
 ## GitHub Sync (recommended)
 
@@ -38,47 +33,11 @@ After your first import, an **Auto-sync** section appears. Click **Enable Auto-s
 
 Auto-sync uses SHA-based change detection — only modified SKILL.md files are re-processed.
 
-## Automatic indexing
+## Automatic indexing (coming soon)
 
-The simplest path. No account needed.
+APM will also index public GitHub repos containing valid SKILL.md files automatically — no account or publishing step needed. Your GitHub username or org name becomes the scope.
 
-### 1. Create a public GitHub repository
-
-Your skill can live in its own repo or in a subdirectory of an existing repo. Your GitHub username or org name becomes the scope — e.g., a skill in `github.com/myorg/skills/code-review` becomes `@myorg/code-review`.
-
-### 2. Add a valid SKILL.md
-
-Create a directory named after your skill with a `SKILL.md` inside:
-
-```
-my-skill/
-└── SKILL.md
-```
-
-The frontmatter must include `name` and `description`:
-
-```yaml
----
-name: my-skill
-description: What this skill does and when to use it
----
-
-Your skill content here...
-```
-
-The `name` must match the parent directory name. See the [SKILL.md Specification](/docs/what-is-skill-md) for all validation rules.
-
-### 3. Validate before pushing
-
-Use the CLI to catch issues before they hit the indexer:
-
-```bash
-apm validate ./my-skill
-```
-
-### 4. Push and wait
-
-Push to GitHub. The APM indexer runs daily and picks up new skills automatically. Your skill will appear on [apm.orthg.nl](https://apm.orthg.nl) and be installable via `apm install @yourname/my-skill`.
+This feature is not yet active. For now, use GitHub Sync to publish your skills.
 
 ## Managing packages
 
@@ -96,7 +55,14 @@ How updates work depends on your publishing method:
 |---|---|
 | **Auto-sync** | Push to GitHub → webhook fires → registry updates automatically |
 | **Manual sync** | Go to namespace page → re-scan the repo → import updated files |
-| **Indexer** | Push to GitHub → indexer picks up changes on next daily run |
+
+### Version tracking
+
+APM tracks versions for each package:
+
+- If your SKILL.md frontmatter includes a `version` field, APM uses that value
+- If not, APM auto-increments the patch version on each change (e.g. `1.0.0` → `1.0.1`)
+- New packages start at `1.0.0`
 
 ## Opting out
 

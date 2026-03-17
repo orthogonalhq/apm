@@ -5,12 +5,12 @@ description: Registry architecture — GitHub sync, auto-indexing, and namespace
 
 ## Overview
 
-The APM registry is the central hub for discovering and distributing agent skills. It operates in two tiers:
+The APM registry is the central hub for discovering and distributing agent skills.
 
-- **Published tier** — Authors sync skills from GitHub repos through their dashboard. Packages are hosted by the registry with auto-sync webhooks for instant updates on push.
-- **Indexed tier** — APM indexes public GitHub repos containing valid SKILL.md files. Skills are discoverable and installable immediately, with no action required from authors.
+- **Published tier** (live) — Authors sync skills from GitHub repos through their dashboard. Packages are hosted by the registry with auto-sync webhooks for instant updates on push.
+- **Indexed tier** (coming soon) — APM will index public GitHub repos containing valid SKILL.md files automatically.
 
-Both tiers are searchable on [apm.orthg.nl](https://apm.orthg.nl) and installable via `apm install @scope/name`.
+All packages are searchable on [apm.orthg.nl](https://apm.orthg.nl) and installable via `apm install @scope/name`.
 
 ## Scoped names
 
@@ -42,28 +42,18 @@ When enabled, a GitHub webhook fires on every push to the repo's default branch.
 
 Organizations can have up to 5 namespaces (1 for unverified orgs). Additional namespaces let a single org publish under multiple scopes — for example, Microsoft might publish under `@azure`, `@vscode`, and `@typescript`.
 
-## Indexed tier
+## Indexed tier (coming soon)
 
-The indexed tier solves the cold-start problem. APM indexes every public GitHub repository with a valid `SKILL.md` file, no opt-in required.
+The indexed tier will automatically index every public GitHub repository with a valid `SKILL.md` file, no opt-in required. This solves the cold-start problem by populating the registry without requiring authors to sign up.
 
-### How indexing works
+When active, the indexer will:
 
-1. A daily indexer searches GitHub for files named `SKILL.md`
-2. For each result, APM checks for a `.apm-exclude` marker file — if present, the repo is skipped
-3. APM fetches repository metadata (stars, license, default branch)
-4. APM fetches the `SKILL.md` content and validates it against the [specification](/docs/what-is-skill-md)
-5. Only skills with valid frontmatter (`name` and `description`) are indexed
-6. The scope is set to the lowercase GitHub repo owner
+1. Search GitHub for files named `SKILL.md`
+2. Skip repos with a `.apm-exclude` marker file
+3. Fetch and validate each SKILL.md against the [specification](/docs/what-is-skill-md)
+4. Set the scope to the lowercase GitHub repo owner
 
-### What gets indexed
-
-A skill is indexed if all of the following are true:
-
-- The repository is public
-- The file is named `SKILL.md`
-- The frontmatter contains valid `name` and `description` fields
-- The `name` field passes validation (lowercase alphanumeric + hyphens, max 64 chars)
-- There is no `.apm-exclude` file in the repository root
+Until the indexer is active, authors can publish skills using [GitHub Sync](/docs/publishing) from their dashboard.
 
 ## Organizations
 
