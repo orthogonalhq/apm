@@ -100,3 +100,83 @@ export async function GET(
 
   return NextResponse.json({ repos: allRepos, connectedRepos });
 }
+
+/** DELETE /api/orgs/:name/github-repos — unlink the connected repo from a scope */
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ name: string }> }
+) {
+  const { name: orgName } = await params;
+
+  const publisher = await getPublisher();
+  if (!publisher) {
+    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  }
+
+  const { scope: scopeName } = await req.json();
+  if (!scopeName) {
+    return NextResponse.json({ error: "scope is required" }, { status: 400 });
+  }
+
+  const [org] = await db
+    .select()
+    .from(organizations)
+    .where(eq(organizations.name, orgName))
+    .limit(1);
+
+  if (!org) return NextResponse.json({ error: "Organization not found" }, { status: 404 });
+
+  const [membership] = await db
+    .select()
+    .from(orgMembers)
+    .where(and(eq(orgMembers.orgId, org.id), eq(orgMembers.publisherId, publisher.id)))
+    .limit(1);
+
+  if (!membership || !["owner", "admin"].includes(membership.role)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const [scope] = await db
+    .select()
+    .from(scopes)
+    .where(and(eq(scopes.name, scopeName), eq(scopes.orgId, org.id)))
+    .limit(1);
+
+  if (!scope) return NextResponse.json({ error: "Scope not found" }, { status: 404 });
+
+  // Best-effort: delete the GitHub webhook if we have a token and repo
+  if (scope.webhookRepo) {
+    const [githubAuth] = await db
+      .select({ accessToken: publisherAuthMethods.accessToken })
+      .from(publisherAuthMethods)
+      .where(and(eq(publisherAuthMethods.publisherId, publisher.id), eq(publisherAuthMethods.provider, "github")))
+      .limit(1);
+
+    if (githubAuth?.accessToken) {
+      const webhookUrl = `${process.env.NEXT_PUBLIC_URL ?? ""}/api/webhooks/github`;
+      const hooksRes = await fetch(`https://api.github.com/repos/${scope.webhookRepo}/hooks`, {
+        headers: { Authorization: `Bearer ${githubAuth.accessToken}`, Accept: "application/vnd.github+json" },
+      }).catch(() => null);
+
+      if (hooksRes?.ok) {
+        const hooks = await hooksRes.json().catch(() => []);
+        const ourHook = hooks.find(
+          (h: { config: { url: string }; id: number }) => h.config?.url === webhookUrl
+        );
+        if (ourHook) {
+          await fetch(`https://api.github.com/repos/${scope.webhookRepo}/hooks/${ourHook.id}`, {
+            method: "DELETE",
+            headers: { Authorization: `Bearer ${githubAuth.accessToken}`, Accept: "application/vnd.github+json" },
+          }).catch(() => {});
+        }
+      }
+    }
+  }
+
+  await db
+    .update(scopes)
+    .set({ webhookRepo: null, webhookSecret: null })
+    .where(eq(scopes.id, scope.id));
+
+  return NextResponse.json({ ok: true });
+}
