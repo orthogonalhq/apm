@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getPublisher } from "@/lib/auth/session";
+import { isAdmin } from "@/lib/auth/admin";
 import { db } from "@/lib/db";
 import { scopes, organizations, orgMembers, auditLog } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
@@ -61,6 +62,24 @@ export async function POST(
     .from(organizations)
     .where(eq(organizations.id, orgId))
     .limit(1);
+
+  // Admins get auto-approved
+  if (isAdmin(publisher.id)) {
+    await db.update(scopes)
+      .set({ orgId, verified: true, status: "active" })
+      .where(eq(scopes.id, scope.id));
+
+    await db.insert(auditLog).values({
+      actorId: publisher.id,
+      actorType: "publisher",
+      action: "scope.approve",
+      targetType: "scope",
+      targetId: scope.id,
+      metadata: { scopeName: name, orgId, orgName: org?.name ?? null, claimType: "namespace", approvedPublisherId: publisher.id, approvedBy: publisher.displayName, autoApproved: true },
+    });
+
+    return NextResponse.json({ ok: true, autoApproved: true, scopeName: name, status: "active", verified: true });
+  }
 
   await db.insert(auditLog).values({
     actorId: publisher.id,

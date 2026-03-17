@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getPublisher } from "@/lib/auth/session";
+import { isAdmin } from "@/lib/auth/admin";
 import { db } from "@/lib/db";
-import { organizations, orgMembers, auditLog } from "@/lib/db/schema";
+import { organizations, orgMembers, scopes, auditLog } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { sendRequestConfirmation } from "@/lib/email";
 
@@ -44,6 +45,39 @@ export async function POST(
       )
     )
     .limit(1);
+
+  // Admins get auto-approved
+  if (isAdmin(publisher.id)) {
+    await db.update(organizations)
+      .set({ status: "active", verified: true, verificationMethod: "admin" })
+      .where(eq(organizations.id, org.id));
+
+    if (existingMember) {
+      await db.update(orgMembers)
+        .set({ role: "owner" })
+        .where(and(eq(orgMembers.orgId, org.id), eq(orgMembers.publisherId, publisher.id)));
+    } else {
+      await db.insert(orgMembers).values({ orgId: org.id, publisherId: publisher.id, role: "owner" });
+    }
+
+    const [existingScope] = await db.select().from(scopes).where(eq(scopes.name, name)).limit(1);
+    if (existingScope) {
+      await db.update(scopes).set({ verified: true, status: "active" }).where(eq(scopes.id, existingScope.id));
+    } else {
+      await db.insert(scopes).values({ name, orgId: org.id, verified: true });
+    }
+
+    await db.insert(auditLog).values({
+      actorId: publisher.id,
+      actorType: "publisher",
+      action: "org.approve",
+      targetType: "organization",
+      targetId: org.id,
+      metadata: { orgName: name, claimType: "org", approvedPublisherId: publisher.id, approvedBy: publisher.displayName, autoApproved: true },
+    });
+
+    return NextResponse.json({ ok: true, autoApproved: true, orgName: name, status: "active", verified: true });
+  }
 
   if (!existingMember) {
     await db.insert(orgMembers).values({
