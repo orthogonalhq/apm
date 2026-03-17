@@ -84,6 +84,10 @@ jobs:
       - name: Install musl-tools
         if: contains(matrix.target, 'musl')
         run: sudo apt-get update && sudo apt-get install -y musl-tools
+      - name: Test
+        if: ${{ !matrix.cross }}
+        working-directory: cli
+        run: cargo test
       - name: Build
         working-directory: cli
         shell: bash

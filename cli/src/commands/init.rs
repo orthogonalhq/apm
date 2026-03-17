@@ -1,3 +1,4 @@
+use crate::commands::install;
 use crate::lockfile::Lockfile;
 use anyhow::{Context, Result};
 use colored::Colorize;
@@ -18,7 +19,7 @@ const AGENT_CONFIGS: &[(&str, &str)] = &[
     (".windsurfrules", "Windsurf"),
 ];
 
-pub fn run() -> Result<()> {
+pub async fn run(registry: &str) -> Result<()> {
     let root = Lockfile::find_root().context("Could not determine project root")?;
 
     println!(
@@ -54,7 +55,28 @@ pub fn run() -> Result<()> {
         );
     }
 
-    // Step 2: Skill discovery instructions
+    // Step 2: Install @apm/init if not already installed
+    let apm_init_path = root.join(".skills").join("apm").join("init").join("SKILL.md");
+    if !apm_init_path.exists() {
+        println!(
+            "  {} Installing @apm/init skill...",
+            "↓".cyan()
+        );
+        if let Err(e) = install::run_one(registry, "apm", "init").await {
+            eprintln!(
+                "  {} Could not install @apm/init: {}\n  Skills will still work if you install it manually later.",
+                "⚠".yellow(),
+                e
+            );
+        }
+    } else {
+        println!(
+            "  {} @apm/init already installed\n",
+            "✓".green()
+        );
+    }
+
+    // Step 3: Skill discovery instructions
     if agents_path.exists() {
         let existing_content = fs::read_to_string(&agents_path).unwrap_or_default();
         let has_apm_block = existing_content.contains(APM_BLOCK_START);

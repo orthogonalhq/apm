@@ -1,5 +1,6 @@
 use crate::lockfile::Lockfile;
 use crate::types::PackageResponse;
+use crate::validator;
 use anyhow::{Context, Result};
 use colored::Colorize;
 use sha2::{Digest, Sha256};
@@ -34,15 +35,27 @@ async fn install_recursive(
         return Ok(());
     }
 
-    // Skip if already installed on disk
-    if lockfile.packages.contains_key(&full_name) {
+    // Skip if already installed on disk (with integrity check)
+    if let Some(locked) = lockfile.packages.get(&full_name) {
         let skills_dir = root.join(".skills").join(scope).join(name);
-        if skills_dir.join("SKILL.md").exists() {
-            // Already installed — still resolve deps
-            let (_, _, dependencies, _) = {
-                let content = fs::read_to_string(skills_dir.join("SKILL.md")).unwrap_or_default();
-                parse_frontmatter_metadata(&content)
-            };
+        let skill_path = skills_dir.join("SKILL.md");
+        if skill_path.exists() {
+            // Verify local file matches lockfile integrity
+            if let Some(expected) = &locked.integrity {
+                let local_content = fs::read_to_string(&skill_path).unwrap_or_default();
+                let actual = compute_integrity(&local_content);
+                if &actual != expected {
+                    eprintln!(
+                        "  {} {} — local file modified (integrity mismatch)",
+                        "⚠".yellow(),
+                        full_name.cyan()
+                    );
+                }
+            }
+
+            // Still resolve deps
+            let content = fs::read_to_string(&skill_path).unwrap_or_default();
+            let (_, _, dependencies, _) = parse_frontmatter_metadata(&content);
             for dep in &dependencies {
                 let stripped = dep.strip_prefix('@').unwrap_or(dep);
                 let parts: Vec<&str> = stripped.splitn(2, '/').collect();
@@ -60,6 +73,20 @@ async fn install_recursive(
     println!("{} Fetching {}...", "apm".green().bold(), full_name.cyan());
 
     let pkg = fetch_package(registry, scope, name).await?;
+
+    // Validate before writing to disk
+    let validation = validator::validate_skill_md(&pkg.skill_md_raw, Some(name));
+    if !validation.valid {
+        eprintln!(
+            "  {} {} has validation errors:",
+            "✗".red(),
+            full_name.cyan()
+        );
+        for error in &validation.errors {
+            eprintln!("    {} {}", "·".red(), error);
+        }
+        eprintln!("  Installing anyway — the skill may not work correctly.\n");
+    }
 
     let skills_dir = root.join(".skills").join(&pkg.scope).join(&pkg.name);
     write_skill(&skills_dir, &pkg)?;
@@ -86,9 +113,12 @@ async fn install_recursive(
     for dep in &dependencies {
         let stripped = dep.strip_prefix('@').unwrap_or(dep);
         let parts: Vec<&str> = stripped.splitn(2, '/').collect();
-        if parts.len() != 2 {
-            eprintln!("  {} Invalid dependency format: {}", "⚠".yellow(), dep);
-            continue;
+        if parts.len() != 2 || parts[0].is_empty() || parts[1].is_empty() {
+            anyhow::bail!(
+                "Invalid dependency format in {}: \"{}\" — expected @scope/name",
+                full_name,
+                dep
+            );
         }
         Box::pin(install_recursive(
             registry, parts[0], parts[1], root, lockfile, visited,
