@@ -1,14 +1,14 @@
 ---
 title: How the Registry Works
-description: Two-tier registry architecture — proxied indexing from GitHub and hosted publishing
+description: Registry architecture — GitHub sync, auto-indexing, and namespace management
 ---
 
 ## Overview
 
-The APM registry serves as the central discovery and distribution hub for agent skills. It operates in two tiers:
+The APM registry is the central hub for discovering and distributing agent skills. It operates in two tiers:
 
-- **Proxied tier** — APM indexes public GitHub repos containing valid SKILL.md files. Skills are discoverable and installable immediately, with no action required from authors.
-- **Hosted tier** — Authors publish directly to APM via `apm publish`. Packages are hosted by the registry for faster installs, versioned snapshots, and guaranteed availability.
+- **Published tier** — Authors sync skills from GitHub repos through their dashboard. Packages are hosted by the registry with auto-sync webhooks for instant updates on push.
+- **Indexed tier** — APM indexes public GitHub repos containing valid SKILL.md files. Skills are discoverable and installable immediately, with no action required from authors.
 
 Both tiers are searchable on [apm.orthg.nl](https://apm.orthg.nl) and installable via `apm install @scope/name`.
 
@@ -16,28 +16,48 @@ Both tiers are searchable on [apm.orthg.nl](https://apm.orthg.nl) and installabl
 
 All packages use scoped names in the format `@scope/name`:
 
-- **Proxied packages** — the scope is derived from the GitHub repo owner. A skill at `github.com/anthropics/skills/code-review` becomes `@anthropics/code-review`.
-- **Hosted packages** — authors claim their scope during publishing.
+- **Published packages** — the scope matches the author's organization namespace (e.g. `@myorg/code-review`)
+- **Indexed packages** — the scope is derived from the GitHub repo owner (e.g. `@anthropics/code-review`)
 
-Scopes prevent naming collisions. Multiple authors can publish a `code-review` skill without conflict — `@anthropics/code-review` and `@myorg/code-review` coexist.
+Scopes prevent naming collisions. Multiple authors can publish a `code-review` skill without conflict.
 
-## Proxied tier (live today)
+## Published tier
 
-The proxied tier solves the cold-start problem. Instead of launching with an empty registry, APM indexes every public GitHub repository with a valid `SKILL.md` file.
+The recommended way to publish. Authors sign in with GitHub, create an organization, and sync skills from their repos.
+
+### How it works
+
+1. Author signs up and creates an organization with a namespace
+2. From the namespace page, they connect a GitHub repository
+3. APM scans the repo tree for SKILL.md files
+4. Author selects which skills to import
+5. APM fetches, validates, and publishes each skill
+6. Optional: enable auto-sync webhook for push-to-publish
+
+### Auto-sync
+
+When enabled, a GitHub webhook fires on every push to the repo's default branch. APM checks which SKILL.md files changed (using blob SHA comparison) and only re-processes modified files. No manual action needed — push and it's live.
+
+### Namespace management
+
+Organizations can have up to 5 namespaces (1 for unverified orgs). Additional namespaces let a single org publish under multiple scopes — for example, Microsoft might publish under `@azure`, `@vscode`, and `@typescript`.
+
+## Indexed tier
+
+The indexed tier solves the cold-start problem. APM indexes every public GitHub repository with a valid `SKILL.md` file, no opt-in required.
 
 ### How indexing works
 
-1. A daily indexer searches the GitHub Code Search API for files named `SKILL.md`
-2. For each result, APM checks for a `.apm-exclude` marker file in the repo root — if present, the repo is skipped
+1. A daily indexer searches GitHub for files named `SKILL.md`
+2. For each result, APM checks for a `.apm-exclude` marker file — if present, the repo is skipped
 3. APM fetches repository metadata (stars, license, default branch)
 4. APM fetches the `SKILL.md` content and validates it against the [specification](/docs/what-is-skill-md)
 5. Only skills with valid frontmatter (`name` and `description`) are indexed
 6. The scope is set to the lowercase GitHub repo owner
-7. Valid skills are upserted into the registry database
 
 ### What gets indexed
 
-A skill is indexed if **all** of the following are true:
+A skill is indexed if all of the following are true:
 
 - The repository is public
 - The file is named `SKILL.md`
@@ -45,35 +65,29 @@ A skill is indexed if **all** of the following are true:
 - The `name` field passes validation (lowercase alphanumeric + hyphens, max 64 chars)
 - There is no `.apm-exclude` file in the repository root
 
-### What doesn't get indexed
+## Organizations
 
-- Private repositories
-- Files named something other than `SKILL.md`
-- Files with missing or invalid frontmatter
-- Repos that have opted out via `.apm-exclude`
+Organizations are the publisher identity in APM. They own namespaces, which own packages.
 
-### Proxied install flow
-
-When you `apm install @scope/name`, the CLI fetches the skill content from the registry (which mirrors it from the source repository). The registry stores the full `SKILL.md` content, so installs don't hit GitHub directly.
-
-## Hosted tier (coming soon)
-
-The hosted tier lets authors publish packages directly to APM:
-
-```bash
-apm publish ./my-skill
+```
+Organization (e.g. "Orthogonal")
+  └── Namespace (e.g. @apm)
+        ├── @apm/init
+        ├── @apm/install
+        └── @apm/search
 ```
 
-Hosted packages get:
+### Roles
 
-- **Faster installs** — served from the registry, not proxied from GitHub
-- **Version history** — publish multiple versions, pin to specific releases
-- **Guaranteed availability** — no dependency on the source repo staying public
-- **Namespace claims** — first-come-first-serve, npm-style
+| Role | Permissions |
+|---|---|
+| **Owner** | Full control — manage members, namespaces, org settings, delete org |
+| **Admin** | Manage namespaces, publish packages, invite members |
+| **Member** | View org details |
 
-### Migration path
+### Verified badge
 
-Proxied packages naturally migrate to hosted as authors claim their scope and publish directly. There's no disruption — the scoped name stays the same, and existing `apm install` commands continue to work.
+The verified badge is a trust signal granted by APM administrators. It indicates that the organization has been reviewed and is a trusted publisher. Reserved namespaces (e.g. `@anthropic`, `@google`) are automatically verified when claimed through the admin approval process.
 
 ## Search
 
@@ -93,12 +107,6 @@ apm search "code review"
 curl "https://apm.orthg.nl/api/search?q=code+review"
 ```
 
-## The public indexing model
+## Opting out
 
-APM's proxied tier follows the same model as Go's module proxy (`proxy.golang.org`) — it indexes all public modules without requiring opt-in. This is a win for the community:
-
-- **Skill authors** get discovery without any publishing step
-- **Users** get a single search destination for all available skills
-- **The ecosystem** grows organically as more people create skills
-
-If you'd rather not be indexed, see [Opting Out](/docs/delisting).
+If your public repo has a SKILL.md but you'd rather not be indexed, see [Opting Out](/docs/delisting).

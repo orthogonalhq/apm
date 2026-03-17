@@ -1,24 +1,50 @@
 ---
-title: Publishing a Skill
+title: Publishing Skills
 description: How to get your skills into the APM registry
 ---
 
 ## Overview
 
-There are two ways to get a skill into the APM registry:
+There are two ways to publish skills to APM:
 
-1. **Automatic indexing** (available now) — push a valid SKILL.md to a public GitHub repo and APM indexes it automatically
-2. **Direct publishing** (coming soon) — publish directly via `apm publish` for faster installs, version control, and namespace ownership
+1. **GitHub Sync** — connect a GitHub repo from your dashboard and import SKILL.md files directly
+2. **Automatic indexing** — push a valid SKILL.md to any public GitHub repo and APM indexes it daily
 
-All packages use scoped names (`@scope/name`). For indexed packages, the scope is derived from the GitHub repo owner.
+Both methods produce the same result — a published package under your `@scope` namespace.
 
-## Get indexed automatically
+## GitHub Sync (recommended)
 
-The simplest path. No account, no CLI, no publishing step.
+The fastest way to publish. No CLI needed.
+
+### 1. Create an organization
+
+If you haven't already, [sign up and create an org](/docs/getting-started). This gives you a namespace like `@myorg`.
+
+### 2. Go to your namespace page
+
+From your dashboard, click your org, then click your namespace (e.g. `@myorg`).
+
+### 3. Connect a GitHub repo
+
+Click **Connect GitHub Repository**, search for your repo, and select it. APM scans the repo for SKILL.md files using the Git tree API — no indexing delay.
+
+### 4. Select and import
+
+Review the found SKILL.md files, check the ones you want to import, and click **Import**. Each file is parsed, validated, and published under your namespace.
+
+### 5. Enable auto-sync
+
+After your first import, an **Auto-sync** section appears. Click **Enable Auto-sync** to set up a GitHub webhook. From now on, any push to your repo automatically updates the affected skills in the registry.
+
+Auto-sync uses SHA-based change detection — only modified SKILL.md files are re-processed.
+
+## Automatic indexing
+
+The simplest path. No account needed.
 
 ### 1. Create a public GitHub repository
 
-Your skill can live in its own repo or in a subdirectory of an existing repo. APM indexes both. Your GitHub username or org name becomes the scope — e.g., a skill in `github.com/myorg/skills/code-review` becomes `@myorg/code-review`.
+Your skill can live in its own repo or in a subdirectory of an existing repo. Your GitHub username or org name becomes the scope — e.g., a skill in `github.com/myorg/skills/code-review` becomes `@myorg/code-review`.
 
 ### 2. Add a valid SKILL.md
 
@@ -54,42 +80,23 @@ apm validate ./my-skill
 
 Push to GitHub. The APM indexer runs daily and picks up new skills automatically. Your skill will appear on [apm.orthg.nl](https://apm.orthg.nl) and be installable via `apm install @yourname/my-skill`.
 
-## Direct publishing (coming soon)
+## Managing packages
 
-Direct publishing will offer:
+From your namespace page in the dashboard, you can:
 
-- **`apm publish`** — publish from the CLI with one command
-- **GitHub Actions** — `orthogonal/apm-publish@v1` for CI/CD integration
-- **Version history** — publish multiple versions, consumers can pin
-- **Namespace ownership** — claim your scope (first-come-first-serve, npm model)
-- **Faster installs** — packages served directly from the registry
+- **View packages** — see all skills published under your namespace with download counts
+- **Delete packages** — remove a skill from the registry (requires typing the package name to confirm)
+- **Re-sync** — click "Connect GitHub Repository" again to import new skills or update existing ones
 
-### Publish flow (future)
+## Updating published skills
 
-```
-Author creates/edits skill
-  → apm validate (spec compliance check)
-  → Author reviews and confirms
-  → apm publish (uploads to hosted registry)
-  → Registry validates, indexes, publishes page
-```
+How updates work depends on your publishing method:
 
-**Nothing is published without explicit confirmation.** An agent can create a skill, but the publish step always requires human authorization.
-
-### Authentication
-
-Direct publishing will use GitHub-based authentication (OAuth). Publishers authenticate via their GitHub identity — no separate account required.
-
-## Private packages (coming soon)
-
-Private packages will be available on a paid tier:
-
-- Scoped to an organization (e.g., `@mycompany/internal-guidelines`)
-- Access controlled by org membership
-- Same publish/install flow as public packages
-- Not publicly visible or searchable
-
-All packages — public and private — use scoped names. Scoping is universal, not limited to private packages.
+| Method | Update process |
+|---|---|
+| **Auto-sync** | Push to GitHub → webhook fires → registry updates automatically |
+| **Manual sync** | Go to namespace page → re-scan the repo → import updated files |
+| **Indexer** | Push to GitHub → indexer picks up changes on next daily run |
 
 ## Opting out
 

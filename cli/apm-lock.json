@@ -1,0 +1,46 @@
+{
+  "lockfileVersion": 2,
+  "packages": {
+    "@apm/init": {
+      "sourceRepo": "orthogonalhq/apm-skills",
+      "sourcePath": "init",
+      "sourceRef": "main",
+      "commitSha": "c4768797c0ed8888deeb53bfc8069e68f4a7b671",
+      "integrity": "sha256-7651b8aa7e84f0e9e12c3a03fa3af745635446cbb5065c77ffefb95e3afe2f34",
+      "description": "APM skill resolution. Defines how @skill references resolve to installed SKILL.md files.",
+      "kind": "composite",
+      "dependencies": [
+        "@apm/search",
+        "@apm/install",
+        "@apm/uninstall"
+      ]
+    },
+    "@apm/install": {
+      "sourceRepo": "orthogonalhq/apm-skills",
+      "sourcePath": "install",
+      "sourceRef": "main",
+      "commitSha": "ab54924ef311c6521e93f1f85fec24ca6b05e875",
+      "integrity": "sha256-e09b7b09268c30eaf9d71137b51ae5b1535d48ebba43e0e8601a60d68525375b",
+      "description": "Install an APM skill by scoped name. Use when asked to install, add, or set up a specific skill.",
+      "kind": "skill"
+    },
+    "@apm/search": {
+      "sourceRepo": "orthogonalhq/apm-skills",
+      "sourcePath": "search",
+      "sourceRef": "main",
+      "commitSha": "280ccfcdf63eeeb8eddd971b7ce14a94fbca7186",
+      "integrity": "sha256-d3e393fd74682b18441313f251b9484688d9834952e6629ee992d830b1c37610",
+      "description": "Search the APM registry for agent skills. Use when asked to find, discover, or browse skills.",
+      "kind": "skill"
+    },
+    "@apm/uninstall": {
+      "sourceRepo": "orthogonalhq/apm-skills",
+      "sourcePath": "uninstall",
+      "sourceRef": "main",
+      "commitSha": "89a2a9efb7eb3d59258c7b8e2fbdb55205a8d36e",
+      "integrity": "sha256-7c47b451a6d0cfe05b7d9193002d0f81b1e1dfa09143f943524057abdef6d030",
+      "description": "Remove an installed APM skill. Use when asked to uninstall, remove, or delete a skill.",
+      "kind": "skill"
+    }
+  }
+}

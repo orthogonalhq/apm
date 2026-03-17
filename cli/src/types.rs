@@ -32,6 +32,7 @@ pub struct PackageResponse {
     pub license: Option<String>,
     pub skill_md_raw: String,
     pub last_indexed_at: String,
+    pub last_commit_sha: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
