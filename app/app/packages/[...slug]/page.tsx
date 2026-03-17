@@ -327,8 +327,7 @@ export default async function PackagePage({
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <div className="px-6 md:px-12 lg:px-20 py-10 md:py-16">
-        <div className="mx-auto max-w-5xl">
+      <div className="px-6 md:px-12 lg:px-20 py-10 md:py-16 max-w-7xl mx-auto">
           {/* Header */}
           <div className="mb-8">
             <p className="font-mono text-[10px] uppercase tracking-[0.2em] t-meta mb-2">
@@ -463,7 +462,6 @@ export default async function PackagePage({
               ))}
             </aside>
           </div>
-        </div>
       </div>
     </>
   );
@@ -550,8 +548,7 @@ async function ScopePage({ scope }: { scope: string }) {
   ] as string[];
 
   return (
-    <div className="px-6 md:px-12 lg:px-20 py-10 md:py-16">
-      <div className="mx-auto max-w-5xl">
+    <div className="px-6 md:px-12 lg:px-20 py-10 md:py-16 max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
           <p className="font-mono text-[10px] uppercase tracking-[0.2em] t-meta mb-2">
@@ -615,7 +612,6 @@ async function ScopePage({ scope }: { scope: string }) {
             ))}
           </div>
         </div>
-      </div>
     </div>
   );
 }

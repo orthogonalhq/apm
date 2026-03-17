@@ -130,7 +130,7 @@ export default async function OrgDetailPage({
   const pendingScopeNames = [...new Set(pendingScopeRows.map((r) => r.scopeName).filter(Boolean))];
 
   return (
-    <div className="px-6 md:px-12 lg:px-20 py-12 max-w-4xl mx-auto">
+    <div className="px-6 md:px-12 lg:px-20 py-12 max-w-7xl mx-auto">
       {/* Back */}
       <Link
         href="/dashboard"

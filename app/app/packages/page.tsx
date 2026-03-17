@@ -541,8 +541,7 @@ export default async function PackagesPage({
       type="application/ld+json"
       dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
     />
-    <div className="px-6 md:px-12 lg:px-20 py-10 md:py-16">
-      <div className="mx-auto max-w-5xl">
+    <div className="px-6 md:px-12 lg:px-20 py-10 md:py-16 max-w-7xl mx-auto">
         <div className="border-y border-white/[0.06]">
           <PanelBar
             label={q ? `apm::search "${q}"` : "apm::packages"}
@@ -638,7 +637,6 @@ export default async function PackagesPage({
             />
           </Suspense>
         </div>
-      </div>
     </div>
     </>
   );

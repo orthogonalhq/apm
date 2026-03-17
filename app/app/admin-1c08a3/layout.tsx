@@ -12,7 +12,7 @@ export default async function AdminLayout({
   if (!publisher || !isAdmin(publisher.id)) redirect("/");
 
   return (
-    <div className="px-6 md:px-12 lg:px-20 py-12 max-w-4xl mx-auto">
+    <div className="px-6 md:px-12 lg:px-20 py-12 max-w-7xl mx-auto">
       <h1 className="font-mono text-sm tracking-[0.08em] uppercase t-meta mb-6">
         Admin
       </h1>
