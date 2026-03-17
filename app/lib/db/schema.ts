@@ -229,29 +229,6 @@ export const scopes = pgTable(
   ]
 );
 
-// ── Scope Members (deprecated — use org_members) ─────────
-// Kept temporarily for migration. Will be dropped.
-export const scopeMembers = pgTable(
-  "scope_members",
-  {
-    scopeId: uuid("scope_id")
-      .notNull()
-      .references(() => scopes.id, { onDelete: "cascade" }),
-    publisherId: uuid("publisher_id")
-      .notNull()
-      .references(() => publishers.id, { onDelete: "cascade" }),
-    role: varchar("role", { length: 16 }).notNull().default("publisher"),
-    invitedBy: uuid("invited_by").references(() => publishers.id),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .defaultNow()
-      .notNull(),
-  },
-  (table) => [
-    primaryKey({ columns: [table.scopeId, table.publisherId] }),
-    index("idx_scope_members_publisher").on(table.publisherId),
-  ]
-);
-
 // ── Personal Access Tokens ────────────────────────────────
 export const personalAccessTokens = pgTable(
   "personal_access_tokens",
@@ -355,5 +332,4 @@ export type PublisherRecord = typeof publishers.$inferSelect;
 export type OrganizationRecord = typeof organizations.$inferSelect;
 export type OrgMemberRecord = typeof orgMembers.$inferSelect;
 export type ScopeRecord = typeof scopes.$inferSelect;
-export type ScopeMemberRecord = typeof scopeMembers.$inferSelect;
 export type AuditLogRecord = typeof auditLog.$inferSelect;
