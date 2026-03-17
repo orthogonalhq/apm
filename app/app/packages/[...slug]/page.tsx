@@ -307,7 +307,8 @@ export default async function PackagePage({
       items: [
         { label: "Kind", value: formatKind(pkg.kind) },
         ...(formatType(pkg.kind) ? [{ label: "Type", value: formatType(pkg.kind)! }] : []),
-        ...(pkg.version ? [{ label: "Version", value: pkg.version }] : []),
+        ...(pkg.version ? [{ label: "Version", value: `v${pkg.version}` }] : []),
+        ...(pkg.lastCommitSha ? [{ label: "SHA", value: pkg.lastCommitSha.slice(0, 7) }] : []),
         { label: "Language", value: formatLanguage(pkg.language) },
         {
           label: "Progressive",

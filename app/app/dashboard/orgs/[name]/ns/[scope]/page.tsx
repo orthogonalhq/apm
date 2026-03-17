@@ -75,6 +75,8 @@ export default async function NamespacePage({
       name: packages.name,
       description: packages.description,
       kind: packages.kind,
+      version: packages.version,
+      lastCommitSha: packages.lastCommitSha,
       downloadCount: packages.downloadCount,
       verified: packages.verified,
       status: packages.status,
@@ -189,6 +191,9 @@ export default async function NamespacePage({
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="text-sm t-heading font-mono">{pkg.name}</span>
+                    {pkg.version && (
+                      <span className="text-[10px] font-mono t-ghost">v{pkg.version}</span>
+                    )}
                     {pkg.kind && (
                       <span className="text-[9px] px-1.5 py-0.5 rounded font-mono uppercase bg-white/[0.04] t-ghost">
                         {pkg.kind}
