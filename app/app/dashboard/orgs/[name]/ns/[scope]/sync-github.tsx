@@ -28,6 +28,7 @@ export function SyncFromGitHub({
   const router = useRouter();
   const [step, setStep] = useState<Step>("idle");
   const [repos, setRepos] = useState<Repo[]>([]);
+  const [connectedRepos, setConnectedRepos] = useState<Record<string, { scope: string; org: string }>>({});
   const [selectedRepo, setSelectedRepo] = useState<string | null>(null);
   const [skills, setSkills] = useState<SkillFile[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -49,6 +50,7 @@ export function SyncFromGitHub({
       }
       const data = await res.json();
       setRepos(data.repos ?? []);
+      setConnectedRepos(data.connectedRepos ?? {});
       setStep("repos");
     } catch {
       setError("Network error");
@@ -176,18 +178,34 @@ export function SyncFromGitHub({
               {filteredRepos.length === 0 ? (
                 <p className="text-xs t-ghost px-3 py-2">No matches</p>
               ) : (
-                filteredRepos.map((repo) => (
-                  <button
-                    key={repo.full_name}
-                    onClick={() => scanRepo(repo.full_name)}
-                    className="w-full text-left px-3 py-2 rounded hover:bg-white/[0.04] transition-colors"
-                  >
-                    <p className="text-xs t-heading font-mono">{repo.name}</p>
-                    {repo.description && (
-                      <p className="text-[10px] t-ghost truncate">{repo.description}</p>
-                    )}
-                  </button>
-                ))
+                filteredRepos.map((repo) => {
+                  const connection = connectedRepos[repo.full_name];
+                  const isOwned = !!connection && connection.scope !== scopeName;
+                  return (
+                    <button
+                      key={repo.full_name}
+                      onClick={() => !isOwned && scanRepo(repo.full_name)}
+                      disabled={isOwned}
+                      className={`w-full text-left px-3 py-2 rounded transition-colors ${isOwned ? "opacity-40 cursor-not-allowed" : "hover:bg-white/4"}`}
+                    >
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-xs t-heading font-mono">{repo.name}</p>
+                        {isOwned && (
+                          <a
+                            href={`/dashboard/orgs/${connection.org}/ns/${connection.scope}`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="text-[9px] px-1.5 py-0.5 rounded-full bg-accent/10 text-accent border border-accent/20 font-mono whitespace-nowrap hover:bg-accent/20 transition-colors"
+                          >
+                            Repo already synced to @{connection.scope}
+                          </a>
+                        )}
+                      </div>
+                      {repo.description && (
+                        <p className="text-[10px] t-ghost truncate">{repo.description}</p>
+                      )}
+                    </button>
+                  );
+                })
               )}
             </div>
             <button
