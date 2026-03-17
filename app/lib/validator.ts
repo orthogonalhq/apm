@@ -30,7 +30,7 @@ export function validateSkillMd(
 
   // Validate name
   if (!fm.name || typeof fm.name !== "string") {
-    errors.push("Missing required field: name");
+    errors.push("name must not be empty");
   } else {
     if (fm.name.length > MAX_NAME_LENGTH) {
       errors.push(`name must be at most ${MAX_NAME_LENGTH} characters`);
@@ -49,7 +49,7 @@ export function validateSkillMd(
 
   // Validate description
   if (!fm.description || typeof fm.description !== "string") {
-    errors.push("Missing required field: description");
+    errors.push("description must not be empty");
   } else if (fm.description.length > MAX_DESCRIPTION_LENGTH) {
     errors.push(
       `description must be at most ${MAX_DESCRIPTION_LENGTH} characters`

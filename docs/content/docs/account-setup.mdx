@@ -1,0 +1,71 @@
+---
+title: Account Setup
+description: Sign up, create an organization, and publish your first skill
+---
+
+## Sign up
+
+APM uses GitHub for authentication. No separate account needed.
+
+1. Go to [apm.orthg.nl](https://apm.orthg.nl) and click **Sign in**
+2. Authorize the APM app with your GitHub account
+3. You'll be taken to the onboarding wizard
+
+## Create an organization
+
+Organizations are the publisher identity in APM. Every namespace belongs to an organization.
+
+In the onboarding wizard:
+
+1. Enter a **namespace** — this becomes your `@scope` for publishing (e.g. `@myorg`)
+2. Enter a **display name** — the human-readable name shown in the registry
+3. Click **Create Organization**
+
+Your organization is created with a matching namespace automatically. For example, creating org `myorg` gives you the `@myorg` namespace.
+
+### Reserved namespaces
+
+Some names are reserved for well-known companies and projects. If you try to create a reserved namespace:
+
+1. You'll be prompted to explain why you should own it
+2. Submit your request — the org appears in your dashboard as **pending**
+3. An APM admin reviews and approves or rejects the request
+4. Approved orgs receive the **verified** badge
+
+You can create a different (non-reserved) org while you wait — the pending request is non-blocking.
+
+## Invite team members
+
+After creating an org, you can invite team members by GitHub username.
+
+- **Members** can view org details
+- **Admins** can manage namespaces and publish packages
+- **Owners** can manage members, delete the org, and do everything admins can
+
+You can skip this step and invite members later from the dashboard.
+
+## Your dashboard
+
+The dashboard at [apm.orthg.nl/dashboard](https://apm.orthg.nl/dashboard) is your home base:
+
+- **Organizations** — manage your orgs, view stats
+- **Access tokens** — create tokens for CLI/API authentication
+- **Profile** — your GitHub connection and account settings
+
+Click an organization to see its detail page with namespaces, members, and stats.
+
+## Create an access token
+
+Tokens are used for CLI authentication and API access.
+
+1. Go to your dashboard
+2. Under **Access Tokens**, click **+ Create**
+3. Enter a name (e.g. "laptop", "CI") and optional description
+4. Click **Create** — copy the token immediately, it won't be shown again
+5. Save it to `~/.apm/token` or set it as the `APM_TOKEN` environment variable
+
+## Next steps
+
+- [Publish a skill](/docs/publishing) — get your skills into the registry
+- [CLI reference](/docs/cli) — install and use the APM CLI
+- [SKILL.md specification](/docs/what-is-skill-md) — learn the skill file format
