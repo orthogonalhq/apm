@@ -2,41 +2,99 @@ use crate::lockfile::Lockfile;
 use crate::types::PackageResponse;
 use anyhow::{Context, Result};
 use colored::Colorize;
+use sha2::{Digest, Sha256};
+use std::collections::HashSet;
 use std::fs;
 
-/// Install a single package by scope/name from the registry.
+/// Install a single package by scope/name from the registry, including dependencies.
 pub async fn run_one(registry: &str, scope: &str, name: &str) -> Result<()> {
+    let root = Lockfile::find_root().context("Could not determine project root")?;
+    let mut lockfile = Lockfile::load(&root)?;
+    let mut visited = HashSet::new();
+
+    install_recursive(registry, scope, name, &root, &mut lockfile, &mut visited).await?;
+
+    lockfile.save(&root)?;
+    Ok(())
+}
+
+/// Recursively install a package and its dependencies.
+async fn install_recursive(
+    registry: &str,
+    scope: &str,
+    name: &str,
+    root: &std::path::Path,
+    lockfile: &mut Lockfile,
+    visited: &mut HashSet<String>,
+) -> Result<()> {
     let full_name = format!("@{}/{}", scope, name);
+
+    // Circular dependency check
+    if !visited.insert(full_name.clone()) {
+        return Ok(());
+    }
+
+    // Skip if already installed on disk
+    if lockfile.packages.contains_key(&full_name) {
+        let skills_dir = root.join(".skills").join(scope).join(name);
+        if skills_dir.join("SKILL.md").exists() {
+            // Already installed — still resolve deps
+            let (_, _, dependencies, _) = {
+                let content = fs::read_to_string(skills_dir.join("SKILL.md")).unwrap_or_default();
+                parse_frontmatter_metadata(&content)
+            };
+            for dep in &dependencies {
+                let stripped = dep.strip_prefix('@').unwrap_or(dep);
+                let parts: Vec<&str> = stripped.splitn(2, '/').collect();
+                if parts.len() == 2 {
+                    Box::pin(install_recursive(
+                        registry, parts[0], parts[1], root, lockfile, visited,
+                    ))
+                    .await?;
+                }
+            }
+            return Ok(());
+        }
+    }
+
     println!("{} Fetching {}...", "apm".green().bold(), full_name.cyan());
 
-    let root = Lockfile::find_root().context("Could not determine project root")?;
     let pkg = fetch_package(registry, scope, name).await?;
 
     let skills_dir = root.join(".skills").join(&pkg.scope).join(&pkg.name);
     write_skill(&skills_dir, &pkg)?;
 
     let (description, kind, dependencies, tags) = parse_frontmatter_metadata(&pkg.skill_md_raw);
+    let integrity = compute_integrity(&pkg.skill_md_raw);
 
-    let mut lockfile = Lockfile::load(&root)?;
     lockfile.add_package(
         &full_name,
         &pkg.source_repo,
         &pkg.source_path,
         &pkg.source_ref,
-        None,
+        pkg.last_commit_sha.as_deref(),
+        Some(&integrity),
         description.as_deref(),
         kind.as_deref(),
-        dependencies,
+        dependencies.clone(),
         tags,
     );
-    lockfile.save(&root)?;
 
-    println!(
-        "{} Installed {} to {}",
-        "apm".green().bold(),
-        full_name.cyan(),
-        skills_dir.display()
-    );
+    println!("  {} {}", "✓".green(), full_name.cyan());
+
+    // Recursively install dependencies
+    for dep in &dependencies {
+        let stripped = dep.strip_prefix('@').unwrap_or(dep);
+        let parts: Vec<&str> = stripped.splitn(2, '/').collect();
+        if parts.len() != 2 {
+            eprintln!("  {} Invalid dependency format: {}", "⚠".yellow(), dep);
+            continue;
+        }
+        Box::pin(install_recursive(
+            registry, parts[0], parts[1], root, lockfile, visited,
+        ))
+        .await?;
+    }
 
     Ok(())
 }
@@ -57,7 +115,7 @@ pub async fn run_all(registry: &str) -> Result<()> {
         lockfile.packages.len()
     );
 
-    for full_name in lockfile.packages.keys() {
+    for (full_name, locked) in &lockfile.packages {
         let stripped = full_name.strip_prefix('@').unwrap_or(full_name);
         let parts: Vec<&str> = stripped.splitn(2, '/').collect();
         if parts.len() != 2 {
@@ -73,6 +131,31 @@ pub async fn run_all(registry: &str) -> Result<()> {
         print!("  {} {}...", "↓".cyan(), full_name);
         match fetch_package(registry, scope, name).await {
             Ok(pkg) => {
+                // Verify integrity if we have a hash
+                if let Some(expected) = &locked.integrity {
+                    let actual = compute_integrity(&pkg.skill_md_raw);
+                    if &actual != expected {
+                        println!(" {}", "⚠".yellow());
+                        eprintln!(
+                            "    {} Content has changed since lockfile was created.",
+                            "WARNING:".yellow().bold()
+                        );
+                        eprintln!(
+                            "    Run {} to review and accept changes.",
+                            "apm update".cyan()
+                        );
+                        if let (Some(old_sha), Some(new_sha)) =
+                            (&locked.commit_sha, &pkg.last_commit_sha)
+                        {
+                            eprintln!(
+                                "    Diff: https://github.com/{}/compare/{}...{}",
+                                locked.source_repo, old_sha, new_sha
+                            );
+                        }
+                        continue;
+                    }
+                }
+
                 let skills_dir = root.join(".skills").join(scope).join(name);
                 write_skill(&skills_dir, &pkg)?;
                 println!(" {}", "✓".green());
@@ -102,6 +185,10 @@ async fn fetch_package(registry: &str, scope: &str, name: &str) -> Result<Packag
         anyhow::bail!("Registry returned status {}", res.status());
     }
 
+    // Track the download
+    let track_url = format!("{}/api/packages/@{}/{}/track", registry, scope, name);
+    let _ = client.post(&track_url).send().await;
+
     Ok(res.json().await?)
 }
 
@@ -113,8 +200,15 @@ fn write_skill(skills_dir: &std::path::Path, pkg: &PackageResponse) -> Result<()
     Ok(())
 }
 
+fn compute_integrity(content: &str) -> String {
+    let hash = Sha256::digest(content.as_bytes());
+    format!("sha256-{}", hex::encode(hash))
+}
+
 /// Extract description, kind, dependencies, and tags from SKILL.md frontmatter.
-fn parse_frontmatter_metadata(content: &str) -> (Option<String>, Option<String>, Vec<String>, Vec<String>) {
+fn parse_frontmatter_metadata(
+    content: &str,
+) -> (Option<String>, Option<String>, Vec<String>, Vec<String>) {
     let trimmed = content.trim_start();
     if !trimmed.starts_with("---") {
         return (None, None, Vec::new(), Vec::new());

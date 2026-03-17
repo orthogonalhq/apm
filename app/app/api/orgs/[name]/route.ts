@@ -4,6 +4,62 @@ import { db } from "@/lib/db";
 import { organizations, orgMembers, scopes, auditLog } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 
+/** PATCH /api/orgs/:name — update organization details */
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: Promise<{ name: string }> }
+) {
+  const { name } = await params;
+
+  const publisher = await getPublisher();
+  if (!publisher) {
+    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  }
+
+  const [org] = await db
+    .select()
+    .from(organizations)
+    .where(eq(organizations.name, name))
+    .limit(1);
+
+  if (!org) {
+    return NextResponse.json({ error: "Organization not found" }, { status: 404 });
+  }
+
+  const [membership] = await db
+    .select()
+    .from(orgMembers)
+    .where(
+      and(
+        eq(orgMembers.orgId, org.id),
+        eq(orgMembers.publisherId, publisher.id)
+      )
+    )
+    .limit(1);
+
+  if (!membership || !["owner", "admin"].includes(membership.role)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const body = await req.json();
+  const updates: Record<string, string> = {};
+
+  if (body.displayName && typeof body.displayName === "string") {
+    updates.displayName = body.displayName.trim();
+  }
+
+  if (Object.keys(updates).length === 0) {
+    return NextResponse.json({ error: "Nothing to update" }, { status: 400 });
+  }
+
+  await db
+    .update(organizations)
+    .set(updates)
+    .where(eq(organizations.id, org.id));
+
+  return NextResponse.json({ ok: true, ...updates });
+}
+
 /** DELETE /api/orgs/:name — delete an organization */
 export async function DELETE(
   _req: NextRequest,

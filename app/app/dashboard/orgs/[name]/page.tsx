@@ -126,7 +126,7 @@ export default async function OrgDetailPage({
           <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-white/[0.04] t-ghost">
             {membership.role}
           </span>
-          <OrgSettingsMenu orgName={org.name} isOwner={membership.role === "owner"} />
+          <OrgSettingsMenu orgName={org.name} displayName={org.displayName || org.name} isOwner={membership.role === "owner"} />
         </div>
       </div>
 
