@@ -271,8 +271,9 @@ export async function POST(
     }
   }
 
-  // Link the repo to this scope so AutoSync becomes available
-  if (imported > 0 && scope.webhookRepo !== repo) {
+  // Always link the repo to this scope so AutoSync becomes available,
+  // even if all files were skipped (SHA unchanged)
+  if (scope.webhookRepo !== repo) {
     await db.update(scopes).set({ webhookRepo: repo }).where(eq(scopes.id, scope.id));
   }
 
