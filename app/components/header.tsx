@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { SearchTrigger } from "./search-trigger";
 
-export function Header({ authSlot }: { authSlot?: React.ReactNode }) {
+export function Header({ authSlot, isLoggedIn }: { authSlot?: React.ReactNode; isLoggedIn?: boolean }) {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -135,13 +135,15 @@ export function Header({ authSlot }: { authSlot?: React.ReactNode }) {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                 </svg>
               </a>
-              <Link
-                href="/dashboard"
-                onClick={() => setMobileOpen(false)}
-                className="flex items-center px-3 py-2.5 rounded-md text-sm t-nav hover:t-heading hover:bg-white/[0.04] transition-colors"
-              >
-                Dashboard
-              </Link>
+              {isLoggedIn && (
+                <Link
+                  href="/dashboard"
+                  onClick={() => setMobileOpen(false)}
+                  className="flex items-center px-3 py-2.5 rounded-md text-sm t-nav hover:t-heading hover:bg-white/[0.04] transition-colors"
+                >
+                  Dashboard
+                </Link>
+              )}
 
               <div className="border-t border-white/[0.06] my-2" />
 
@@ -159,6 +161,26 @@ export function Header({ authSlot }: { authSlot?: React.ReactNode }) {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                 </svg>
               </a>
+
+              {isLoggedIn ? (
+                <form action="/api/auth/logout" method="POST">
+                  <button
+                    type="submit"
+                    onClick={() => setMobileOpen(false)}
+                    className="w-full flex items-center px-3 py-2.5 rounded-md text-sm t-ghost hover:t-nav hover:bg-white/[0.04] transition-colors"
+                  >
+                    Sign out
+                  </button>
+                </form>
+              ) : (
+                <Link
+                  href="/login"
+                  onClick={() => setMobileOpen(false)}
+                  className="flex items-center px-3 py-2.5 rounded-md text-sm text-accent hover:bg-accent/10 transition-colors"
+                >
+                  Sign in
+                </Link>
+              )}
             </div>
           </nav>
         </div>

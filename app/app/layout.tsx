@@ -60,11 +60,14 @@ const organizationJsonLd = {
     "The open registry for agent skills — discover and install production-ready skills for AI agents.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const { getPublisher } = await import("@/lib/auth/session");
+  const publisher = await getPublisher();
+  const isLoggedIn = !!publisher;
   return (
     <html
       lang="en"
@@ -75,7 +78,7 @@ export default function RootLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
         />
-        <Header authSlot={<AuthNav />} />
+        <Header authSlot={<AuthNav />} isLoggedIn={isLoggedIn} />
         <main className="flex-1">{children}</main>
         <Footer />
       </body>
