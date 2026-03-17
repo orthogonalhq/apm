@@ -217,6 +217,8 @@ export const scopes = pgTable(
     name: varchar("name", { length: 64 }).notNull().unique(),
     verified: boolean("verified").default(false),
     status: varchar("status", { length: 16 }).notNull().default("active"),
+    webhookSecret: varchar("webhook_secret", { length: 64 }),
+    webhookRepo: varchar("webhook_repo", { length: 256 }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),

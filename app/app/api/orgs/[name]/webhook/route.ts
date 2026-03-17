@@ -1,10 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
+import crypto from "crypto";
 import { getPublisher } from "@/lib/auth/session";
 import { db } from "@/lib/db";
-import { organizations, orgMembers, publisherAuthMethods } from "@/lib/db/schema";
+import {
+  organizations,
+  orgMembers,
+  scopes,
+  publisherAuthMethods,
+} from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 
-const WEBHOOK_SECRET = process.env.GITHUB_WEBHOOK_SECRET ?? "";
 const APP_URL = process.env.NEXT_PUBLIC_URL ?? "";
 
 async function getGitHubToken(publisherId: string) {
@@ -21,7 +26,7 @@ async function getGitHubToken(publisherId: string) {
   return auth?.accessToken ?? null;
 }
 
-async function verifyOrgAccess(orgName: string, publisherId: string) {
+async function verifyOrgAndScope(orgName: string, scopeName: string, publisherId: string) {
   const [org] = await db
     .select()
     .from(organizations)
@@ -42,28 +47,49 @@ async function verifyOrgAccess(orgName: string, publisherId: string) {
     .limit(1);
 
   if (!membership || !["owner", "admin"].includes(membership.role)) return null;
-  return org;
+
+  const [scope] = await db
+    .select()
+    .from(scopes)
+    .where(
+      and(
+        eq(scopes.name, scopeName),
+        eq(scopes.orgId, org.id)
+      )
+    )
+    .limit(1);
+
+  if (!scope) return null;
+
+  return { org, scope };
 }
 
-/** GET /api/orgs/:name/webhook?repo=owner/repo — check webhook status */
+/** GET /api/orgs/:name/webhook?repo=owner/repo&scope=scopeName — check webhook status */
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ name: string }> }
 ) {
   const { name } = await params;
   const repo = req.nextUrl.searchParams.get("repo");
+  const scopeName = req.nextUrl.searchParams.get("scope");
 
   const publisher = await getPublisher();
   if (!publisher) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
 
-  if (!await verifyOrgAccess(name, publisher.id)) {
+  if (!repo || !scopeName) {
+    return NextResponse.json({ error: "repo and scope params required" }, { status: 400 });
+  }
+
+  const ctx = await verifyOrgAndScope(name, scopeName, publisher.id);
+  if (!ctx) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  if (!repo) {
-    return NextResponse.json({ error: "repo param required" }, { status: 400 });
+  // If scope has a webhook configured for this repo, check its status
+  if (ctx.scope.webhookRepo !== repo) {
+    return NextResponse.json({ connected: false });
   }
 
   const token = await getGitHubToken(publisher.id);
@@ -73,7 +99,6 @@ export async function GET(
 
   const webhookUrl = `${APP_URL}/api/webhooks/github`;
 
-  // List webhooks on the repo
   const res = await fetch(`https://api.github.com/repos/${repo}/hooks`, {
     headers: {
       Authorization: `Bearer ${token}`,
@@ -119,15 +144,16 @@ export async function POST(
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
 
-  if (!await verifyOrgAccess(name, publisher.id)) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  const body = await req.json();
+  const { repo, scope: scopeName } = body;
+
+  if (!repo || !scopeName) {
+    return NextResponse.json({ error: "repo and scope are required" }, { status: 400 });
   }
 
-  const body = await req.json();
-  const { repo } = body;
-
-  if (!repo) {
-    return NextResponse.json({ error: "repo is required" }, { status: 400 });
+  const ctx = await verifyOrgAndScope(name, scopeName, publisher.id);
+  if (!ctx) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const token = await getGitHubToken(publisher.id);
@@ -151,6 +177,12 @@ export async function POST(
       (h: { config: { url: string } }) => h.config?.url === webhookUrl
     );
     if (existing) {
+      // Update scope with the repo and existing secret
+      await db
+        .update(scopes)
+        .set({ webhookRepo: repo })
+        .where(eq(scopes.id, ctx.scope.id));
+
       return NextResponse.json({
         ok: true,
         hookId: existing.id,
@@ -159,7 +191,10 @@ export async function POST(
     }
   }
 
-  // Create the webhook
+  // Generate a unique secret for this scope
+  const secret = crypto.randomBytes(32).toString("hex");
+
+  // Create the webhook on GitHub
   const createRes = await fetch(
     `https://api.github.com/repos/${repo}/hooks`,
     {
@@ -176,7 +211,7 @@ export async function POST(
         config: {
           url: webhookUrl,
           content_type: "json",
-          secret: WEBHOOK_SECRET,
+          secret,
           insecure_ssl: "0",
         },
       }),
@@ -190,6 +225,12 @@ export async function POST(
       { status: 400 }
     );
   }
+
+  // Store the secret and repo on the scope
+  await db
+    .update(scopes)
+    .set({ webhookSecret: secret, webhookRepo: repo })
+    .where(eq(scopes.id, ctx.scope.id));
 
   const hook = await createRes.json();
   return NextResponse.json({ ok: true, hookId: hook.id }, { status: 201 });
@@ -207,14 +248,15 @@ export async function DELETE(
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
 
-  if (!await verifyOrgAccess(name, publisher.id)) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  const { repo, hookId, scope: scopeName } = await req.json();
+
+  if (!repo || !hookId || !scopeName) {
+    return NextResponse.json({ error: "repo, hookId, and scope required" }, { status: 400 });
   }
 
-  const { repo, hookId } = await req.json();
-
-  if (!repo || !hookId) {
-    return NextResponse.json({ error: "repo and hookId required" }, { status: 400 });
+  const ctx = await verifyOrgAndScope(name, scopeName, publisher.id);
+  if (!ctx) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const token = await getGitHubToken(publisher.id);
@@ -239,6 +281,12 @@ export async function DELETE(
       { status: 400 }
     );
   }
+
+  // Clear webhook data from scope
+  await db
+    .update(scopes)
+    .set({ webhookSecret: null, webhookRepo: null })
+    .where(eq(scopes.id, ctx.scope.id));
 
   return NextResponse.json({ ok: true });
 }

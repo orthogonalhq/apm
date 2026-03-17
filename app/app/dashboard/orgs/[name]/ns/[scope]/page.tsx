@@ -164,7 +164,7 @@ export default async function NamespacePage({
           <h2 className="font-mono text-sm tracking-[0.08em] uppercase t-meta mb-4">
             Auto-sync
           </h2>
-          <WebhookStatus orgName={name} repo={connectedRepo} />
+          <WebhookStatus orgName={name} scopeName={scopeName} repo={connectedRepo} />
         </section>
       )}
 
