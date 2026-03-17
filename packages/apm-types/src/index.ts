@@ -1,7 +1,7 @@
 // ── Core package types ──
 
 export type PackageKind = "skill" | "composite";
-export type PackageStatus = "active" | "deprecated" | "archived";
+export type PackageStatus = "active" | "deprecated" | "archived" | "delisted";
 
 /** Canonical display name: @scope/name */
 export function formatPackageId(scope: string, name: string): string {
