@@ -102,7 +102,7 @@ export default async function NamespacePage({
     .map((p) => p.lastUpdatedAt)
     .filter(Boolean)
     .sort()
-    .at(-1) ?? null;
+    .at(-1)?.toISOString() ?? null;
 
   return (
     <div className="px-6 md:px-12 lg:px-20 py-12 max-w-4xl mx-auto">
