@@ -4,10 +4,13 @@ type GHOrg = { login: string; avatar_url: string };
 
 export interface RequestCardData {
   id: string;
+  claimType: "org" | "namespace";
   orgName: string;
   orgDisplayName: string | null;
   orgStatus: string;
   orgVerified: boolean;
+  targetOrgId?: string | null; // for namespace claims — the org it should be added under
+  targetOrgName?: string | null;
   actorId: string;
   requesterName: string;
   requesterEmail: string;
@@ -40,8 +43,20 @@ export function RequestCard({
           {data.orgDisplayName && (
             <p className="text-xs t-meta">{data.orgDisplayName}</p>
           )}
+          {data.claimType === "namespace" && data.targetOrgName && (
+            <p className="text-[10px] t-ghost mt-0.5">
+              as namespace under <span className="font-mono t-meta">@{data.targetOrgName}</span>
+            </p>
+          )}
         </div>
         <div className="flex items-center gap-2">
+          <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-mono ${
+            data.claimType === "namespace"
+              ? "bg-blue-500/10 text-blue-400 border border-blue-500/20"
+              : "bg-white/[0.04] t-ghost"
+          }`}>
+            {data.claimType}
+          </span>
           {data.memberCount > 0 && (
             <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-white/[0.04] t-ghost font-mono">
               {data.memberCount} members

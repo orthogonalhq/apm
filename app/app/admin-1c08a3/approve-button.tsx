@@ -7,10 +7,14 @@ export function ApproveButton({
   orgName,
   publisherId,
   publisherName,
+  claimType,
+  targetOrgId,
 }: {
   orgName: string;
   publisherId: string;
   publisherName: string;
+  claimType: "org" | "namespace";
+  targetOrgId?: string | null;
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -23,7 +27,7 @@ export function ApproveButton({
     const res = await fetch("/api/admin/approve-org", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ orgName, publisherId }),
+      body: JSON.stringify({ orgName, publisherId, claimType, targetOrgId }),
     });
 
     if (!res.ok) {

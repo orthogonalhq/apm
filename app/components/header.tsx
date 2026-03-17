@@ -33,7 +33,7 @@ export function Header({ authSlot, isLoggedIn }: { authSlot?: React.ReactNode; i
             : "border-b border-white/[0.06] bg-bg"
         }`}
       >
-        <div className="px-6 md:px-12 lg:px-20 h-12 flex items-center gap-0">
+        <div className="px-6 md:px-12 lg:px-20 h-12 flex items-center gap-0 max-w-7xl mx-auto w-full">
           {/* Logo */}
           <Link
             href="/"

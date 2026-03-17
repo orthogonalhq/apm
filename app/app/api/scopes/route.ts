@@ -102,6 +102,17 @@ export async function POST(req: NextRequest) {
     .limit(1);
 
   if (existing) {
+    if (existing.status === "reserved") {
+      return NextResponse.json(
+        {
+          error: "reserved",
+          scopeId: existing.id,
+          scopeName: existing.name,
+          message: `The namespace '${name}' is reserved. You can claim it by verifying ownership of the matching GitHub organization, or request manual approval.`,
+        },
+        { status: 403 }
+      );
+    }
     return NextResponse.json(
       { error: `Scope '${name}' is already claimed` },
       { status: 409 }

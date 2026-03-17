@@ -1,6 +1,8 @@
 {
   "title": "Documentation",
   "pages": [
+    "---Overview---",
+    "why-apm",
     "---Learn---",
     "index",
     "skill-references",
@@ -12,6 +14,7 @@
     "at-skill-spec",
     "composite-skills",
     "---Publishing Skills---",
+    "claim-namespace",
     "account-setup",
     "publishing",
     "---Integrate---",

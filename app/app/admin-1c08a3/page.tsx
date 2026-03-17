@@ -19,19 +19,19 @@ export default async function AdminPendingPage() {
           key={r.id}
           data={r}
           actions={
-            r.orgStatus === "reserved" && (
-              <div className="flex items-center gap-2">
-                <ApproveButton
-                  orgName={r.orgName}
-                  publisherId={r.actorId}
-                  publisherName={r.requesterName}
-                />
-                <RejectButton
-                  orgName={r.orgName}
-                  publisherId={r.actorId}
-                />
-              </div>
-            )
+            <div className="flex items-center gap-2">
+              <ApproveButton
+                orgName={r.orgName}
+                publisherId={r.actorId}
+                publisherName={r.requesterName}
+                claimType={r.claimType}
+                targetOrgId={r.targetOrgId}
+              />
+              <RejectButton
+                orgName={r.orgName}
+                publisherId={r.actorId}
+              />
+            </div>
           }
         />
       ))}

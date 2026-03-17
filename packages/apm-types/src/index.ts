@@ -109,6 +109,18 @@ export interface IndexerResponse {
   errors: string[];
 }
 
+export interface RegistryEntry {
+  name: string;
+  description: string;
+  repo: string;
+  path: string;
+  category: string;
+  tags: string[];
+  stars: number;
+  source: string;
+  featured: boolean;
+}
+
 // ── SKILL.md frontmatter ──
 
 export interface SkillFrontmatter {

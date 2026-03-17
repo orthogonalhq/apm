@@ -1,0 +1,174 @@
+---
+title: Why APM?
+description: A real package manager for agent skills — discovery, installation, dependency resolution, integrity verification, and cross-agent compatibility
+---
+
+## The problem
+
+AI agent skills are scattered across GitHub repos, gists, blog posts, and Discord messages. There's no standard way to discover, install, update, or depend on them. Teams copy-paste SKILL.md files between projects, lose track of versions, and have no idea when upstream changes.
+
+This is where JavaScript was before npm, where Python was before pip, where Rust was before Cargo.
+
+## APM fixes this
+
+APM is a package manager and public registry for agent skills. It works like npm — but for the `SKILL.md` files that power AI coding agents like Claude Code, Cursor, GitHub Copilot, Gemini CLI, Windsurf, and [30+ more](/docs/state-of-agents-md).
+
+### One-command install
+
+```bash
+apm install @anthropics/code-review
+```
+
+Skills are fetched from the registry and written to `.skills/` in your project. No manual downloading, no copy-pasting, no broken links.
+
+{/* TODO: screenshot — install a skill */}
+
+### Lockfile with integrity verification
+
+Every install is tracked in `apm-lock.json` — pinned to a specific commit SHA with a `sha256` integrity hash.
+
+```json
+{
+  "@anthropics/code-review": {
+    "commitSha": "c4768797c0ed...",
+    "integrity": "sha256-7651b8aa7e84..."
+  }
+}
+```
+
+Run `apm install` on a fresh clone and get the exact same skills, verified byte-for-byte. If upstream content has changed since your lockfile was created, APM blocks the install and shows a diff link.
+
+### Dependency resolution
+
+Composite skills can declare dependencies on other skills. APM resolves the full dependency tree and installs everything in one command:
+
+```bash
+$ apm install @apm/init
+apm Fetching @apm/init...
+  ✓ @apm/init
+apm Fetching @apm/search...
+  ✓ @apm/search
+apm Fetching @apm/install...
+  ✓ @apm/install
+```
+
+No manual tracking of which skills need which other skills. Circular dependencies are rejected. Duplicates are deduplicated.
+
+### Update with change detection
+
+```bash
+apm update
+```
+
+APM fetches the latest version of every installed skill, compares integrity hashes, and shows you exactly what changed — with a GitHub diff link. You approve each change before it's applied.
+
+{/* TODO: screenshot — update with change detection */}
+
+### Cross-agent compatibility
+
+APM skills work with every agent that supports the [agentskills.io](https://agentskills.io) open standard — over 34 products. Install once, use everywhere:
+
+| Agent | Config file | APM support |
+|-------|-------------|-------------|
+| Claude Code | `CLAUDE.md` | Full — `apm init` auto-wires |
+| Cursor | `.cursorrules` | Full — `apm init` auto-wires |
+| GitHub Copilot | `.github/copilot-instructions.md` | Full — `apm init` auto-wires |
+| Gemini CLI | `GEMINI.md` | Full — `apm init` auto-wires |
+| Windsurf | `.windsurfrules` | Full — `apm init` auto-wires |
+| 30+ others | `AGENTS.md` | Native — reads AGENTS.md directly |
+
+`apm init` detects your agent config files and wires them to your installed skills automatically. No manual setup.
+
+### Public registry with search
+
+Browse and search skills at [apm.orthg.nl](https://apm.orthg.nl), or use the CLI:
+
+```bash
+apm search "code review"
+```
+
+{/* TODO: screenshot — registry search */}
+
+Every skill shows its description, star count, license, download count, and source repository. Filter by category, language, and compatibility.
+
+### Automatic indexing
+
+APM indexes public GitHub repositories containing SKILL.md files automatically. If you've published agent skills on GitHub, they're already in the registry — no account needed, no publish step.
+
+Skill authors can [claim their namespace](/docs/claim-namespace) to take full control: manage listings, publish updates via GitHub sync, enable auto-sync webhooks, invite team members, and get the verified badge.
+
+### Validated skills
+
+Every skill is validated against the [SKILL.md specification](/docs/what-is-skill-md):
+
+```bash
+apm validate ./my-skill
+✓ SKILL.md is valid
+  name: my-skill
+  description: A description of what this skill does
+```
+
+The CLI validates locally. The registry validates on ingest. Invalid skills are rejected before they reach users.
+
+### GitHub Action for CI
+
+Add `apm validate` to your CI pipeline to catch invalid skills before they're merged:
+
+```yaml
+- uses: orthogonalhq/apm/action@main
+  with:
+    path: ./skills
+```
+
+Every push validates all SKILL.md files in your repo. Available on the [GitHub Actions Marketplace](https://github.com/marketplace).
+
+### Badges for your README
+
+Show that your skills are on APM:
+
+```markdown
+![APM](https://img.shields.io/endpoint?url=https://apm.orthg.nl/api/badge/@scope/name)
+```
+
+Badges show install status, star count, or download count — powered by the APM badge API.
+
+## How it compares
+
+| Capability | APM | Manual (copy-paste) | Git submodules |
+|-----------|-----|-------------------|----------------|
+| One-command install | Yes | No | Sort of |
+| Lockfile + integrity | Yes | No | No |
+| Dependency resolution | Yes | No | No |
+| Update with diff review | Yes | No | No |
+| Cross-agent wiring | Yes | No | No |
+| Public search & discovery | Yes | No | No |
+| CI validation | Yes | No | No |
+| Auto-sync from GitHub | Yes | No | Yes |
+| Works offline | Yes (cached) | Yes | Yes |
+
+## Get started
+
+```bash
+# Install the CLI
+npm install -g @apm-cli/apm
+
+# Search for skills
+apm search "code review"
+
+# Install a skill
+apm install @anthropics/code-review
+
+# Wire up your agent
+apm init
+```
+
+Or browse the registry at [apm.orthg.nl](https://apm.orthg.nl).
+
+## Learn more
+
+- [Getting Started](/docs) — install the CLI and quick start guide
+- [CLI Reference](/docs/cli) — all commands and options
+- [SKILL.md Specification](/docs/what-is-skill-md) — the skill file format
+- [Composite Skills](/docs/composite-skills) — dependency resolution and progressive loading
+- [Claim Your Namespace](/docs/claim-namespace) — take ownership of your skills
+- [REST API](/docs/api) — integrate programmatically
