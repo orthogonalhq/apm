@@ -130,15 +130,21 @@ export async function POST(
     try {
       const blobSha = blobShaMap.get(path) ?? null;
 
-      // Check if the file has changed since last import
+      // Derive sourcePath here so we can use it for the SHA check
+      const sourcePath = path.includes("/")
+        ? path.substring(0, path.lastIndexOf("/"))
+        : ".";
+
+      // Check if this specific file has changed since last import
       if (blobSha) {
         const [existingPkg] = await db
-          .select({ lastCommitSha: schema.packages.lastCommitSha, name: schema.packages.name })
+          .select({ lastCommitSha: schema.packages.lastCommitSha })
           .from(schema.packages)
           .where(
             and(
               eq(schema.packages.scope, scopeName),
-              eq(schema.packages.sourceRepo, repo)
+              eq(schema.packages.sourceRepo, repo),
+              eq(schema.packages.sourcePath, sourcePath)
             )
           )
           .limit(1);
@@ -189,10 +195,6 @@ export async function POST(
         ? (fm.allowed_tools as string[])
         : [];
 
-      // Derive source path (directory of SKILL.md)
-      const sourcePath = path.includes("/")
-        ? path.substring(0, path.lastIndexOf("/"))
-        : ".";
 
       const packageData = {
         scope: scopeName,
