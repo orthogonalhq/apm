@@ -30,7 +30,7 @@ function PixelHeart() {
 export function Footer() {
   return (
     <footer className="relative z-10 border-t border-white/[0.06] bg-bg mt-auto">
-      <div className="px-6 md:px-12 lg:px-20">
+      <div className="px-6 md:px-12 lg:px-20 max-w-7xl mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-white/[0.06] py-10 md:py-14">
           {/* Navigate */}
           <div className="pb-6 md:pb-0 md:pr-10">

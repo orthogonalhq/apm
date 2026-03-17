@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { getPublisher } from "@/lib/auth/session";
 import { isAdmin } from "@/lib/auth/admin";
 import { db } from "@/lib/db";
-import { organizations, orgMembers, auditLog } from "@/lib/db/schema";
+import { organizations, orgMembers, auditLog, publishers } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
+import { sendNamespaceRejected } from "@/lib/email";
 
 /** POST /api/admin/reject-org — reject a reserved org claim */
 export async function POST(req: NextRequest) {
@@ -55,6 +56,21 @@ export async function POST(req: NextRequest) {
       reason: reason || null,
     },
   });
+
+  // Notify the publisher via email
+  try {
+    const [pub] = await db
+      .select({ email: publishers.email })
+      .from(publishers)
+      .where(eq(publishers.id, publisherId))
+      .limit(1);
+
+    if (pub?.email) {
+      await sendNamespaceRejected(pub.email, orgName, reason);
+    }
+  } catch {
+    // Email failure should not block the rejection
+  }
 
   return NextResponse.json({ ok: true, orgName });
 }

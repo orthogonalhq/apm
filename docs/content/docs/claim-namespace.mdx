@@ -1,0 +1,126 @@
+---
+title: Claim Your Namespace
+description: Take ownership of your @scope on APM — manage your skills, publish updates, and get verified
+---
+
+## Your skills are already on APM
+
+APM automatically indexes public GitHub repositories containing valid SKILL.md files. If you or your organization has published agent skills on GitHub, they're likely already discoverable on the [APM registry](https://apm.orthg.nl) — searchable by name, scope, and description, and installable by anyone with the CLI.
+
+Claiming your namespace gives you **full control** over how those skills appear and who can manage them.
+
+## What you get
+
+| Feature | Without claim | With claim |
+|---------|--------------|------------|
+| Skills discoverable on registry | Yes | Yes |
+| Installable via `apm install` | Yes | Yes |
+| Manage skill listings | No | **Yes** |
+| Publish updates via GitHub sync | No | **Yes** |
+| Auto-sync on push (webhook) | No | **Yes** |
+| Delete or delist skills | No | **Yes** |
+| Invite team members | No | **Yes** |
+| Verified badge | No | **Yes** |
+| Download analytics | No | **Yes** |
+
+## Step 1: Sign in with GitHub
+
+Go to [apm.orthg.nl](https://apm.orthg.nl) and click **Sign in**. APM uses GitHub OAuth — no separate account needed. We request read access to your profile, email, and org memberships.
+
+{/* TODO: screenshot — sign in with GitHub */}
+
+## Step 2: Create your organization
+
+The onboarding wizard walks you through creating an organization. This is your publisher identity on APM.
+
+1. Enter your **namespace** — use your GitHub username or org name (e.g., `anthropics`)
+2. Enter a **display name** — the human-readable name shown on the registry
+3. Click **Create Organization**
+
+{/* TODO: screenshot — create organization wizard */}
+
+Your namespace is created automatically to match your org name. For example, creating org `anthropics` gives you the `@anthropics` namespace.
+
+### Reserved namespaces
+
+Well-known company and project names are reserved to prevent squatting. If you try to claim a reserved name:
+
+1. You'll see a prompt to **explain your ownership** (e.g., "I'm an admin of the GitHub org")
+2. Submit the request — it appears in your dashboard as **pending**
+3. An APM admin reviews and approves or rejects (you'll receive an email either way)
+4. Approved orgs receive the **verified** badge
+
+{/* TODO: screenshot — reserved namespace request */}
+
+You don't need to wait — create a different org in the meantime if needed. The pending request is non-blocking.
+
+## Step 3: Connect your GitHub repo
+
+Once your namespace is active:
+
+1. From your **dashboard**, click your organization, then click your namespace
+2. Click **Connect GitHub Repository**
+3. Search for and select your repo
+4. APM scans the repo and shows all found SKILL.md files
+5. Select the skills you want to import and click **Import**
+
+{/* TODO: screenshot — connect GitHub repository */}
+
+Each imported skill is validated, parsed, and published under your namespace. Your existing indexed skills are now under your control.
+
+## Step 4: Enable auto-sync
+
+After your first import, enable **auto-sync** to keep your registry skills updated automatically:
+
+1. On your namespace page, find the **Auto-sync** section
+2. Click **Enable Auto-sync**
+3. APM sets up a GitHub webhook on your repo
+4. Every push automatically updates affected SKILL.md files in the registry
+
+{/* TODO: screenshot — enable auto-sync */}
+
+No manual re-imports needed — push to GitHub and the registry updates within seconds.
+
+## Step 5: Invite your team
+
+From your organization page, invite team members by GitHub username:
+
+| Role | Permissions |
+|------|-------------|
+| **Owner** | Full control — manage members, namespaces, org settings |
+| **Admin** | Manage namespaces, publish and delete packages, invite members |
+| **Member** | View org details and package stats |
+
+{/* TODO: screenshot — invite team members */}
+
+## Your dashboard
+
+Your dashboard at [apm.orthg.nl/dashboard](https://apm.orthg.nl/dashboard) is your home base:
+
+{/* TODO: screenshot — dashboard overview */}
+
+From here you can:
+
+- View all your organizations and namespaces
+- See package counts, download stats, and member counts
+- Click into any namespace to manage skills, sync repos, and view analytics
+- Create access tokens for CLI and API authentication
+
+## Get the verified badge
+
+The verified badge is a trust signal that tells users your namespace is the official source. Reserved namespaces (e.g., `@anthropics`, `@google`) are automatically verified when approved.
+
+For non-reserved namespaces, verification is available to organizations that demonstrate active maintenance and community trust.
+
+## Ready to claim?
+
+<a href="https://apm.orthg.nl" style={{display: 'inline-block', padding: '10px 24px', background: '#2563eb', color: '#fff', borderRadius: '6px', textDecoration: 'none', fontSize: '14px', fontWeight: 500}}>
+  Sign in and claim your namespace →
+</a>
+
+## Questions?
+
+- [Account Setup](/docs/account-setup) — detailed setup guide
+- [Publishing Skills](/docs/publishing) — GitHub sync, auto-sync, and managing packages
+- [Opting Out](/docs/delisting) — how to remove skills from the registry
+- [GitHub Issues](https://github.com/orthogonalhq/apm/issues) — report bugs or request features

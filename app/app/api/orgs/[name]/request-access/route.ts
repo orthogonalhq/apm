@@ -3,6 +3,7 @@ import { getPublisher } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { organizations, orgMembers, auditLog } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
+import { sendRequestConfirmation } from "@/lib/email";
 
 /** POST /api/orgs/:name/request-access — request manual verification for a reserved org */
 export async function POST(
@@ -60,11 +61,21 @@ export async function POST(
     targetId: org.id,
     metadata: {
       orgName: name,
+      claimType: "org",
       publisherName: publisher.displayName,
       publisherEmail: publisher.email,
       reason: body.reason || null,
     },
   });
+
+  // Send confirmation email
+  try {
+    if (publisher.email) {
+      await sendRequestConfirmation(publisher.email, name, "org");
+    }
+  } catch {
+    // Email failure should not block the request
+  }
 
   return NextResponse.json({
     message: "Access request submitted. We'll review and get back to you.",

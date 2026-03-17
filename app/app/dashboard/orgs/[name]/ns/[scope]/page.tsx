@@ -98,7 +98,7 @@ export default async function NamespacePage({
   const connectedRepo = scopePackages.find((p) => p.sourceRepo)?.sourceRepo ?? null;
 
   return (
-    <div className="px-6 md:px-12 lg:px-20 py-12 max-w-3xl">
+    <div className="px-6 md:px-12 lg:px-20 py-12 max-w-4xl mx-auto">
       {/* Back */}
       <Link
         href={`/dashboard/orgs/${name}`}
@@ -134,13 +134,13 @@ export default async function NamespacePage({
 
       {/* Stats */}
       <section className="grid grid-cols-2 gap-4 mb-10">
-        <div className="border border-white/[0.06] rounded-lg bg-surface p-4 text-center">
+        <div className="card-static p-4 text-center">
           <p className="text-xl t-heading font-medium">{scopePackages.length}</p>
           <p className="font-mono text-[10px] uppercase tracking-[0.15em] t-ghost mt-1">
             Packages
           </p>
         </div>
-        <div className="border border-white/[0.06] rounded-lg bg-surface p-4 text-center">
+        <div className="card-static p-4 text-center">
           <p className="text-xl t-heading font-medium">
             {totalDownloads.toLocaleString()}
           </p>
@@ -161,12 +161,18 @@ export default async function NamespacePage({
       )}
 
       {/* Auto-sync Webhook */}
-      {isOwnerOrAdmin && connectedRepo && (
+      {isOwnerOrAdmin && (
         <section className="mb-10">
           <h2 className="font-mono text-sm tracking-[0.08em] uppercase t-meta mb-4">
             Auto-sync
           </h2>
-          <WebhookStatus orgName={name} scopeName={scopeName} repo={connectedRepo} />
+          {connectedRepo ? (
+            <WebhookStatus orgName={name} scopeName={scopeName} repo={connectedRepo} />
+          ) : (
+            <div className="card-static">
+              <p className="text-xs t-ghost font-mono">Requires a GitHub repository sync first</p>
+            </div>
+          )}
         </section>
       )}
 

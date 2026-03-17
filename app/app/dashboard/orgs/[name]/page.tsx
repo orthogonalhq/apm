@@ -96,8 +96,24 @@ export default async function OrgDetailPage({
   const isOwnerOrAdmin = ["owner", "admin"].includes(membership.role);
   const maxNamespaces = org.verified ? 5 : 1;
 
+  // Fetch pending namespace requests by this user (reserved orgs where they're a pending member)
+  const pendingRequests = await db
+    .select({
+      orgName: organizations.name,
+      orgDisplayName: organizations.displayName,
+    })
+    .from(orgMembers)
+    .innerJoin(organizations, eq(organizations.id, orgMembers.orgId))
+    .where(
+      and(
+        eq(orgMembers.publisherId, publisher.id),
+        eq(orgMembers.role, "pending"),
+        eq(organizations.status, "reserved")
+      )
+    );
+
   return (
-    <div className="px-6 md:px-12 lg:px-20 py-12 max-w-3xl">
+    <div className="px-6 md:px-12 lg:px-20 py-12 max-w-4xl mx-auto">
       {/* Back */}
       <Link
         href="/dashboard"
@@ -132,13 +148,13 @@ export default async function OrgDetailPage({
 
       {/* Stats */}
       <section className="grid grid-cols-3 gap-4 mb-10">
-        <div className="border border-white/[0.06] rounded-lg bg-surface p-4 text-center">
+        <div className="card-static p-4 text-center">
           <p className="text-xl t-heading font-medium">{totalPackages}</p>
           <p className="font-mono text-[10px] uppercase tracking-[0.15em] t-ghost mt-1">
             Packages
           </p>
         </div>
-        <div className="border border-white/[0.06] rounded-lg bg-surface p-4 text-center">
+        <div className="card-static p-4 text-center">
           <p className="text-xl t-heading font-medium">
             {totalDownloads.toLocaleString()}
           </p>
@@ -146,7 +162,7 @@ export default async function OrgDetailPage({
             Downloads
           </p>
         </div>
-        <div className="border border-white/[0.06] rounded-lg bg-surface p-4 text-center">
+        <div className="card-static p-4 text-center">
           <p className="text-xl t-heading font-medium">{members.length}</p>
           <p className="font-mono text-[10px] uppercase tracking-[0.15em] t-ghost mt-1">
             Members
@@ -200,6 +216,27 @@ export default async function OrgDetailPage({
           </div>
         )}
 
+        {/* Pending namespace requests */}
+        {pendingRequests.length > 0 && (
+          <div className="space-y-2 mt-2">
+            {pendingRequests.map((pr) => (
+              <div
+                key={pr.orgName}
+                className="flex items-center justify-between border border-amber-500/20 rounded-lg bg-amber-500/[0.03] px-4 py-3 opacity-70"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-sm t-heading">
+                    @{pr.orgName}
+                  </span>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 font-mono">
+                    pending review
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* Add namespace — owner/admin, under limit */}
         {isOwnerOrAdmin && orgScopes.length < maxNamespaces && (
           <ScopeActions orgId={org.id} orgName={org.name} />
@@ -221,7 +258,7 @@ export default async function OrgDetailPage({
           {members.map((m) => (
             <div
               key={m.publisherId}
-              className="flex items-center justify-between border border-white/[0.06] rounded-lg bg-surface px-4 py-3"
+              className="card-static flex items-center justify-between"
             >
               <div>
                 <p className="text-sm t-heading">{m.displayName}</p>

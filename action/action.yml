@@ -1,0 +1,142 @@
+name: "APM Validate"
+description: "Validate SKILL.md files against the APM specification"
+branding:
+  icon: "check-circle"
+  color: "blue"
+
+inputs:
+  path:
+    description: "Path to a SKILL.md file or directory to scan for SKILL.md files"
+    required: false
+    default: "."
+  version:
+    description: "APM CLI version to use (e.g. '0.1.0'). Defaults to latest release."
+    required: false
+    default: "latest"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Detect platform
+      id: platform
+      shell: bash
+      run: |
+        OS="$(uname -s)"
+        ARCH="$(uname -m)"
+
+        case "$OS" in
+          Linux)
+            case "$ARCH" in
+              x86_64)  TARGET="x86_64-unknown-linux-gnu" ;;
+              aarch64) TARGET="aarch64-unknown-linux-gnu" ;;
+              *)       echo "::error::Unsupported architecture: $ARCH"; exit 1 ;;
+            esac
+            ;;
+          Darwin)
+            case "$ARCH" in
+              x86_64)  TARGET="x86_64-apple-darwin" ;;
+              arm64)   TARGET="aarch64-apple-darwin" ;;
+              *)       echo "::error::Unsupported architecture: $ARCH"; exit 1 ;;
+            esac
+            ;;
+          *)
+            echo "::error::Unsupported OS: $OS"
+            exit 1
+            ;;
+        esac
+
+        echo "target=$TARGET" >> "$GITHUB_OUTPUT"
+
+    - name: Resolve version
+      id: version
+      shell: bash
+      env:
+        INPUT_VERSION: ${{ inputs.version }}
+      run: |
+        if [ "$INPUT_VERSION" = "latest" ]; then
+          VERSION="$(curl -fsSL \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/orthogonalhq/apm/releases/latest \
+            | grep '"tag_name"' | sed -E 's/.*"v([^"]+)".*/\1/')"
+          if [ -z "$VERSION" ]; then
+            echo "::error::Failed to resolve latest APM CLI version"
+            exit 1
+          fi
+        else
+          VERSION="$INPUT_VERSION"
+        fi
+
+        echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+        echo "Resolved APM CLI version: $VERSION"
+
+    - name: Download and install APM CLI
+      shell: bash
+      env:
+        VERSION: ${{ steps.version.outputs.version }}
+        TARGET: ${{ steps.platform.outputs.target }}
+      run: |
+        ASSET="apm-v${VERSION}-${TARGET}.tar.gz"
+        URL="https://github.com/orthogonalhq/apm/releases/download/v${VERSION}/${ASSET}"
+
+        echo "Downloading APM CLI from $URL"
+        INSTALL_DIR="${RUNNER_TEMP}/apm-cli"
+        mkdir -p "$INSTALL_DIR"
+
+        curl -fsSL "$URL" -o "${RUNNER_TEMP}/${ASSET}"
+        tar -xzf "${RUNNER_TEMP}/${ASSET}" -C "$INSTALL_DIR"
+
+        chmod +x "${INSTALL_DIR}/apm"
+        echo "$INSTALL_DIR" >> "$GITHUB_PATH"
+
+        echo "APM CLI v${VERSION} installed to $INSTALL_DIR"
+
+    - name: Validate SKILL.md files
+      shell: bash
+      env:
+        INPUT_PATH: ${{ inputs.path }}
+      run: |
+        FAILURES=0
+        CHECKED=0
+
+        if [ -f "$INPUT_PATH" ]; then
+          # Input is a single file
+          echo "::group::Validating $INPUT_PATH"
+          if apm validate "$INPUT_PATH"; then
+            echo "  PASS: $INPUT_PATH"
+          else
+            echo "::error file=${INPUT_PATH}::Validation failed for $INPUT_PATH"
+            FAILURES=$((FAILURES + 1))
+          fi
+          echo "::endgroup::"
+          CHECKED=1
+        elif [ -d "$INPUT_PATH" ]; then
+          # Input is a directory — find all SKILL.md files recursively
+          while IFS= read -r -d '' file; do
+            CHECKED=$((CHECKED + 1))
+            echo "::group::Validating $file"
+            if apm validate "$file"; then
+              echo "  PASS: $file"
+            else
+              echo "::error file=${file}::Validation failed for $file"
+              FAILURES=$((FAILURES + 1))
+            fi
+            echo "::endgroup::"
+          done < <(find "$INPUT_PATH" -name "SKILL.md" -print0)
+        else
+          echo "::error::Path not found: $INPUT_PATH"
+          exit 1
+        fi
+
+        echo ""
+        echo "--- Results ---"
+        echo "Files checked: $CHECKED"
+        echo "Failures:      $FAILURES"
+
+        if [ "$CHECKED" -eq 0 ]; then
+          echo "::warning::No SKILL.md files found in $INPUT_PATH"
+        fi
+
+        if [ "$FAILURES" -gt 0 ]; then
+          echo "::error::$FAILURES file(s) failed validation"
+          exit 1
+        fi
