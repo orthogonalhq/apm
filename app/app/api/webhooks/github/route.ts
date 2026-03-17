@@ -86,6 +86,7 @@ export async function POST(req: NextRequest) {
       id: schema.packages.id,
       scope: schema.packages.scope,
       name: schema.packages.name,
+      version: schema.packages.version,
       sourcePath: schema.packages.sourcePath,
       scopeId: schema.packages.scopeId,
     })
@@ -234,10 +235,23 @@ export async function POST(req: NextRequest) {
         lastUpdatedAt: new Date(),
       };
 
+      // Determine version: frontmatter > auto-increment > 1.0.0
+      const fmVersion = fm.version as string | undefined;
+      let version: string;
+      if (fmVersion) {
+        version = fmVersion;
+      } else if (existingPkg?.version) {
+        const parts = existingPkg.version.split(".");
+        const patch = parseInt(parts[2] || "0", 10) + 1;
+        version = `${parts[0] || "1"}.${parts[1] || "0"}.${patch}`;
+      } else {
+        version = "1.0.0";
+      }
+
       if (existingPkg) {
         await db
           .update(schema.packages)
-          .set(packageData)
+          .set({ ...packageData, version })
           .where(eq(schema.packages.id, existingPkg.id));
         updated++;
       } else {
@@ -245,6 +259,7 @@ export async function POST(req: NextRequest) {
           .insert(schema.packages)
           .values({
             ...packageData,
+            version,
             firstIndexedAt: new Date(),
           });
         created++;

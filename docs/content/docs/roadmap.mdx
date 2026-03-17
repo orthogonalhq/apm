@@ -1,0 +1,64 @@
+---
+title: Roadmap
+description: Planned features and improvements for APM
+---
+
+## CLI
+
+### 1. Skill patching (`apm patch`)
+
+Make intentional local modifications to installed skills and persist them as `.patch` files. Patches are reapplied on every `apm install`, so your customizations survive reinstalls and team syncs.
+
+```bash
+apm patch @anthropics/code-review        # snapshot + edit
+apm patch @anthropics/code-review --save # generate .patch file
+```
+
+**Use case:** Modify an upstream skill to match your team's coding standards without forking.
+
+**Status:** Planned
+
+### 2. `apm verify`
+
+Verify all installed skills match their lockfile integrity hashes. Pure local check, no network calls. Run in CI as a security gate.
+
+```bash
+apm verify
+  @apm/init       ✓ matches lockfile
+  @apm/search     ✓ matches lockfile
+  @apm/install    ⚠ LOCAL MODIFICATION DETECTED
+  @apm/uninstall  ✓ matches lockfile
+```
+
+**Status:** In progress
+
+### 3. `apm login`
+
+Authenticate the CLI via GitHub OAuth device flow — no browser redirect needed.
+
+```bash
+apm login
+# Opens a URL, you enter a code, CLI is authenticated
+```
+
+**Status:** Planned
+
+## Registry
+
+### Scope verification
+
+Verify scope ownership via GitHub org membership, GitLab group, or DNS TXT record.
+
+**Status:** Built (GitHub org), planned (GitLab, DNS)
+
+### Google OAuth
+
+Sign in with Google as an alternative to GitHub.
+
+**Status:** Planned
+
+### Abuse reporting
+
+Report malicious or policy-violating packages. Reports are queued for admin review.
+
+**Status:** Planned

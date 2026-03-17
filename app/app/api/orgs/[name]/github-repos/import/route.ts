@@ -224,7 +224,7 @@ export async function POST(
 
       // Upsert — check if package already exists under this scope
       const [existing] = await db
-        .select({ id: schema.packages.id })
+        .select({ id: schema.packages.id, version: schema.packages.version })
         .from(schema.packages)
         .where(
           and(
@@ -234,16 +234,31 @@ export async function POST(
         )
         .limit(1);
 
+      // Determine version: frontmatter > auto-increment > 1.0.0
+      const fmVersion = fm.version as string | undefined;
+      let version: string;
+      if (fmVersion) {
+        version = fmVersion;
+      } else if (existing?.version) {
+        // Auto-increment patch: 1.0.0 → 1.0.1
+        const parts = existing.version.split(".");
+        const patch = parseInt(parts[2] || "0", 10) + 1;
+        version = `${parts[0] || "1"}.${parts[1] || "0"}.${patch}`;
+      } else {
+        version = "1.0.0";
+      }
+
       if (existing) {
         await db
           .update(schema.packages)
-          .set(packageData)
+          .set({ ...packageData, version })
           .where(eq(schema.packages.id, existing.id));
       } else {
         await db
           .insert(schema.packages)
           .values({
             ...packageData,
+            version,
             firstIndexedAt: new Date(),
           });
       }
