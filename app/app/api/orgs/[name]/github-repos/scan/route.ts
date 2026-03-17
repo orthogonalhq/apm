@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getPublisher } from "@/lib/auth/session";
 import { db } from "@/lib/db";
-import { organizations, orgMembers, publisherAuthMethods } from "@/lib/db/schema";
-import { eq, and } from "drizzle-orm";
+import { organizations, orgMembers, publisherAuthMethods, scopes } from "@/lib/db/schema";
+import { eq, and, ne } from "drizzle-orm";
 
 /** POST /api/orgs/:name/github-repos/scan — scan a repo for SKILL.md files */
 export async function POST(
@@ -57,10 +57,34 @@ export async function POST(
   }
 
   const body = await req.json();
-  const { repo } = body;
+  const { repo, scope: scopeName } = body;
 
   if (!repo) {
     return NextResponse.json({ error: "repo is required" }, { status: 400 });
+  }
+
+  // Soft block: repo already connected to a different scope
+  if (scopeName) {
+    const [currentScope] = await db
+      .select({ id: scopes.id })
+      .from(scopes)
+      .where(and(eq(scopes.name, scopeName), eq(scopes.orgId, org.id)))
+      .limit(1);
+
+    if (currentScope) {
+      const [conflict] = await db
+        .select({ name: scopes.name })
+        .from(scopes)
+        .where(and(eq(scopes.webhookRepo, repo), ne(scopes.id, currentScope.id)))
+        .limit(1);
+
+      if (conflict) {
+        return NextResponse.json(
+          { error: `This repository is already connected to @${conflict.name}` },
+          { status: 409 }
+        );
+      }
+    }
   }
 
   // Get the default branch first

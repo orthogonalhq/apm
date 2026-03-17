@@ -8,7 +8,7 @@ import {
   scopes,
   publisherAuthMethods,
 } from "@/lib/db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 
 const APP_URL = process.env.NEXT_PUBLIC_URL ?? "";
 
@@ -154,6 +154,20 @@ export async function POST(
   const ctx = await verifyOrgAndScope(name, scopeName, publisher.id);
   if (!ctx) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  // Soft block: repo already connected to a different scope
+  const [conflict] = await db
+    .select({ name: scopes.name })
+    .from(scopes)
+    .where(and(eq(scopes.webhookRepo, repo), sql`${scopes.id} != ${ctx.scope.id}`))
+    .limit(1);
+
+  if (conflict) {
+    return NextResponse.json(
+      { error: `This repository is already connected to @${conflict.name}` },
+      { status: 409 }
+    );
   }
 
   const token = await getGitHubToken(publisher.id);

@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getPublisher } from "@/lib/auth/session";
 import { db } from "@/lib/db";
-import { organizations, orgMembers, publisherAuthMethods } from "@/lib/db/schema";
-import { eq, and } from "drizzle-orm";
+import { organizations, orgMembers, publisherAuthMethods, scopes } from "@/lib/db/schema";
+import { eq, and, isNotNull } from "drizzle-orm";
 
 /** GET /api/orgs/:name/github-repos — list repos accessible to the user */
 export async function GET(
@@ -86,5 +86,17 @@ export async function GET(
     );
   }
 
-  return NextResponse.json({ repos: allRepos });
+  // Build a map of repo → { scope, org } for repos already connected
+  const connectedScopes = await db
+    .select({ webhookRepo: scopes.webhookRepo, scopeName: scopes.name, orgName: organizations.name })
+    .from(scopes)
+    .innerJoin(organizations, eq(organizations.id, scopes.orgId))
+    .where(isNotNull(scopes.webhookRepo));
+
+  const connectedRepos: Record<string, { scope: string; org: string }> = {};
+  for (const s of connectedScopes) {
+    if (s.webhookRepo) connectedRepos[s.webhookRepo] = { scope: s.scopeName, org: s.orgName };
+  }
+
+  return NextResponse.json({ repos: allRepos, connectedRepos });
 }
