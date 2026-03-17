@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getPublisher } from "@/lib/auth/session";
 import { db } from "@/lib/db";
-import { scopes, scopeMembers, auditLog } from "@/lib/db/schema";
+import { organizations, orgMembers, scopes, auditLog } from "@/lib/db/schema";
 import { eq, and, count } from "drizzle-orm";
 
 const SCOPE_NAME_REGEX = /^[a-z][a-z0-9-]{0,62}[a-z0-9]$/;
 const NO_CONSECUTIVE_HYPHENS = /--/;
 
-/** POST /api/scopes — claim a scope */
+/** POST /api/scopes — create a scope under an org */
 export async function POST(req: NextRequest) {
   const publisher = await getPublisher();
   if (!publisher) {
@@ -16,6 +16,7 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json();
   const name = body.name?.toLowerCase?.();
+  const orgId = body.orgId;
 
   if (!name || typeof name !== "string") {
     return NextResponse.json(
@@ -24,7 +25,13 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Validate naming rules
+  if (!orgId || typeof orgId !== "string") {
+    return NextResponse.json(
+      { error: "orgId is required" },
+      { status: 400 }
+    );
+  }
+
   if (
     name.length < 2 ||
     name.length > 64 ||
@@ -40,7 +47,54 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Check if scope already exists
+  // Verify the org exists
+  const [org] = await db
+    .select()
+    .from(organizations)
+    .where(eq(organizations.id, orgId))
+    .limit(1);
+
+  if (!org) {
+    return NextResponse.json(
+      { error: "Organization not found" },
+      { status: 404 }
+    );
+  }
+
+  // Verify the user is an owner or admin of the org
+  const [membership] = await db
+    .select()
+    .from(orgMembers)
+    .where(
+      and(
+        eq(orgMembers.orgId, orgId),
+        eq(orgMembers.publisherId, publisher.id)
+      )
+    )
+    .limit(1);
+
+  if (!membership || !["owner", "admin"].includes(membership.role)) {
+    return NextResponse.json(
+      { error: "You must be an owner or admin of this organization" },
+      { status: 403 }
+    );
+  }
+
+  // Check namespace limit
+  const maxNamespaces = org.verified ? 5 : 1;
+  const [scopeCount] = await db
+    .select({ count: count() })
+    .from(scopes)
+    .where(eq(scopes.orgId, orgId));
+
+  if (scopeCount.count >= maxNamespaces) {
+    return NextResponse.json(
+      { error: `Namespace limit reached (${maxNamespaces}). ${org.verified ? "" : "Verify your organization to unlock more."}`.trim() },
+      { status: 403 }
+    );
+  }
+
+  // Check if scope name already exists
   const [existing] = await db
     .select()
     .from(scopes)
@@ -48,66 +102,27 @@ export async function POST(req: NextRequest) {
     .limit(1);
 
   if (existing) {
-    if (existing.status === "reserved") {
-      return NextResponse.json(
-        {
-          error: `Scope '${name}' is reserved. Contact support to claim it.`,
-        },
-        { status: 403 }
-      );
-    }
     return NextResponse.json(
       { error: `Scope '${name}' is already claimed` },
       { status: 409 }
     );
   }
 
-  // Check tier limits
-  const [ownerCount] = await db
-    .select({ count: count() })
-    .from(scopeMembers)
-    .where(
-      and(
-        eq(scopeMembers.publisherId, publisher.id),
-        eq(scopeMembers.role, "owner")
-      )
-    );
-
-  // TODO: check verified status for higher limit
-  const maxScopes = 1;
-  if (ownerCount.count >= maxScopes) {
-    return NextResponse.json(
-      {
-        error: `You can own up to ${maxScopes} scope(s). Verify a scope to increase your limit.`,
-      },
-      { status: 403 }
-    );
-  }
-
-  // Create scope + membership
   const [scope] = await db
     .insert(scopes)
     .values({
+      orgId,
       name,
-      displayName: body.displayName || name,
-      description: body.description || null,
-      url: body.url || null,
     })
     .returning();
-
-  await db.insert(scopeMembers).values({
-    scopeId: scope.id,
-    publisherId: publisher.id,
-    role: "owner",
-  });
 
   await db.insert(auditLog).values({
     actorId: publisher.id,
     actorType: "publisher",
-    action: "scope.claim",
+    action: "scope.create",
     targetType: "scope",
     targetId: scope.id,
-    metadata: { name },
+    metadata: { name, orgId },
   });
 
   return NextResponse.json(scope, { status: 201 });

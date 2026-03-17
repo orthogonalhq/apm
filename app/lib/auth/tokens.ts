@@ -3,7 +3,8 @@ import { db } from "@/lib/db";
 import {
   personalAccessTokens,
   scopeTokens,
-  scopeMembers,
+  scopes,
+  orgMembers,
   publishers,
 } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
@@ -97,14 +98,22 @@ export async function canPublishToScope(
   // Personal token with scope restriction
   if (auth.scopeId && auth.scopeId !== scopeId) return false;
 
-  // Check scope membership
+  // Find the scope's org, then check org membership
+  const [scope] = await db
+    .select({ orgId: scopes.orgId })
+    .from(scopes)
+    .where(eq(scopes.id, scopeId))
+    .limit(1);
+
+  if (!scope) return false;
+
   const [member] = await db
     .select()
-    .from(scopeMembers)
+    .from(orgMembers)
     .where(
       and(
-        eq(scopeMembers.scopeId, scopeId),
-        eq(scopeMembers.publisherId, auth.publisherId)
+        eq(orgMembers.orgId, scope.orgId),
+        eq(orgMembers.publisherId, auth.publisherId)
       )
     )
     .limit(1);

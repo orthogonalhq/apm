@@ -52,13 +52,25 @@ export function SearchModal({
   const [selected, setSelected] = useState(0);
   const [loading, setLoading] = useState(false);
 
-  // Focus input on open
+  const [visible, setVisible] = useState(false);
+  const [closing, setClosing] = useState(false);
+
+  // Manage mount/unmount with animation
   useEffect(() => {
     if (open) {
+      setVisible(true);
+      setClosing(false);
       setQuery("");
       setResults([]);
       setSelected(0);
       setTimeout(() => inputRef.current?.focus(), 10);
+    } else if (visible) {
+      setClosing(true);
+      const timer = setTimeout(() => {
+        setVisible(false);
+        setClosing(false);
+      }, 300);
+      return () => clearTimeout(timer);
     }
   }, [open]);
 
@@ -133,18 +145,18 @@ export function SearchModal({
     [results, selected, navigate, query, onClose, router]
   );
 
-  if (!open) return null;
+  if (!visible) return null;
 
   return (
     <div className="fixed inset-0 z-[100]">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        className={`absolute inset-0 bg-black/50 backdrop-blur-xs ${closing ? "animate-overlay-out" : "animate-overlay-in"}`}
         onClick={onClose}
       />
 
       {/* Modal */}
-      <div className="relative mx-auto mt-[15vh] w-full max-w-xl px-4">
+      <div className={`relative mx-auto mt-[15vh] w-full max-w-xl px-4 ${closing ? "animate-dialog-out" : "animate-dialog-in"}`}>
         <div className="overflow-hidden rounded-lg border border-white/[0.08] bg-[#141414] shadow-2xl">
           {/* Input */}
           <div className="flex items-center gap-3 border-b border-white/[0.06] px-4">

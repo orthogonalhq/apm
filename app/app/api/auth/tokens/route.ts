@@ -23,13 +23,16 @@ export async function POST(req: NextRequest) {
   }
 
   const { plain, hash } = generateToken();
+  const tokenHint = `apm_...${plain.slice(-8)}`;
 
   const [token] = await db
     .insert(personalAccessTokens)
     .values({
       publisherId: publisher.id,
       name,
+      description: body.description || null,
       tokenHash: hash,
+      tokenHint,
       scopeId: body.scopeId || null,
       expiresAt: body.expiresAt ? new Date(body.expiresAt) : null,
     })

@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { getPublisher } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import {
+  organizations,
+  orgMembers,
   scopes,
-  scopeMembers,
   publisherAuthMethods,
   auditLog,
 } from "@/lib/db/schema";
@@ -12,9 +13,8 @@ import { eq, and } from "drizzle-orm";
 /**
  * POST /api/scopes/:name/verify
  *
- * Verify a scope via github_org method.
- * For reserved scopes: checks the publisher admins the GitHub org in `reserved_for`.
- * For claimed scopes: checks the publisher admins a GitHub org matching the scope name.
+ * Verify an organization via github_org method.
+ * Checks the publisher is an admin of the matching GitHub org.
  */
 export async function POST(
   req: NextRequest,
@@ -27,25 +27,49 @@ export async function POST(
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
 
-  // Find the scope
-  const [scope] = await db
+  // Find the org
+  const [org] = await db
     .select()
-    .from(scopes)
-    .where(eq(scopes.name, name))
+    .from(organizations)
+    .where(eq(organizations.name, name))
     .limit(1);
 
-  if (!scope) {
+  if (!org) {
     return NextResponse.json(
-      { error: `Scope '${name}' not found` },
+      { error: `Organization '${name}' not found` },
       { status: 404 }
     );
   }
 
-  if (scope.verified) {
+  const isReservedClaim = org.status === "reserved";
+
+  if (org.verified && !isReservedClaim) {
     return NextResponse.json(
-      { error: "Scope is already verified" },
+      { error: "Organization is already verified" },
       { status: 400 }
     );
+  }
+
+  // For active orgs, check the publisher is an owner or admin
+  // For reserved orgs, skip — GitHub verification is the proof of ownership
+  if (!isReservedClaim) {
+    const [membership] = await db
+      .select()
+      .from(orgMembers)
+      .where(
+        and(
+          eq(orgMembers.orgId, org.id),
+          eq(orgMembers.publisherId, publisher.id)
+        )
+      )
+      .limit(1);
+
+    if (!membership || !["owner", "admin"].includes(membership.role)) {
+      return NextResponse.json(
+        { error: "Only organization owners and admins can verify" },
+        { status: 403 }
+      );
+    }
   }
 
   // Get publisher's GitHub auth method
@@ -70,10 +94,8 @@ export async function POST(
     );
   }
 
-  // Determine which GitHub org to verify against
-  const targetOrg = scope.reservedFor || scope.name;
-
-  // Check if the publisher is an admin of the target org
+  // Check if the publisher is an admin of the GitHub org
+  const targetOrg = org.name;
   const membershipRes = await fetch(
     `https://api.github.com/orgs/${targetOrg}/memberships/${githubAuth.providerUsername}`,
     {
@@ -102,55 +124,72 @@ export async function POST(
     );
   }
 
-  const membership = await membershipRes.json();
+  const ghMembership = await membershipRes.json();
 
-  if (membership.role !== "admin") {
+  if (ghMembership.role !== "admin") {
     return NextResponse.json(
       {
-        error: `You are a member of '${targetOrg}' but not an admin. Scope verification requires admin access.`,
+        error: `You are a member of '${targetOrg}' but not an owner or admin. Verification requires admin access.`,
       },
       { status: 403 }
     );
   }
 
-  // Verification passed — update the scope
-  const isReserved = scope.status === "reserved";
-
+  // Verification passed — update the org
   await db
-    .update(scopes)
+    .update(organizations)
     .set({
       verified: true,
       verificationMethod: "github_org",
-      status: "active",
+      ...(isReservedClaim ? { status: "active" } : {}),
     })
-    .where(eq(scopes.id, scope.id));
+    .where(eq(organizations.id, org.id));
 
-  // If reserved scope, add the publisher as owner
-  if (isReserved) {
-    await db.insert(scopeMembers).values({
-      scopeId: scope.id,
+  // For reserved claims, make the verifying user the owner + ensure scope exists
+  if (isReservedClaim) {
+    await db.insert(orgMembers).values({
+      orgId: org.id,
       publisherId: publisher.id,
       role: "owner",
     });
+
+    // Auto-create matching namespace if not already seeded
+    const [existingScope] = await db
+      .select()
+      .from(scopes)
+      .where(eq(scopes.name, org.name))
+      .limit(1);
+
+    if (!existingScope) {
+      await db.insert(scopes).values({
+        name: org.name,
+        orgId: org.id,
+        verified: true,
+      });
+    } else {
+      // Mark pre-seeded scope as verified too
+      await db
+        .update(scopes)
+        .set({ verified: true })
+        .where(eq(scopes.id, existingScope.id));
+    }
   }
 
   await db.insert(auditLog).values({
     actorId: publisher.id,
     actorType: "publisher",
-    action: "scope.verify",
-    targetType: "scope",
-    targetId: scope.id,
+    action: "org.verify",
+    targetType: "organization",
+    targetId: org.id,
     metadata: {
       method: "github_org",
       org: targetOrg,
-      wasReserved: isReserved,
     },
   });
 
   return NextResponse.json({
-    scope: name,
+    organization: name,
     verified: true,
     verificationMethod: "github_org",
-    status: "active",
   });
 }
