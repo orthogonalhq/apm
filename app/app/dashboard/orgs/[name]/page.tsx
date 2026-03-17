@@ -9,6 +9,7 @@ import {
   scopes,
   packages,
   publishers,
+  auditLog,
 } from "@/lib/db/schema";
 import { eq, and, sql, inArray } from "drizzle-orm";
 import { ScopeActions } from "../../scope-actions";
@@ -111,6 +112,22 @@ export default async function OrgDetailPage({
         eq(organizations.status, "reserved")
       )
     );
+
+  // Fetch pending scope/namespace requests for this org (tracked via audit log)
+  const pendingScopeRows = await db
+    .select({ scopeName: sql<string>`${auditLog.metadata}->>'scopeName'` })
+    .from(auditLog)
+    .innerJoin(scopes, eq(scopes.id, auditLog.targetId))
+    .where(
+      and(
+        eq(auditLog.actorId, publisher.id),
+        eq(auditLog.action, "scope.request_access"),
+        sql`${auditLog.metadata}->>'orgId' = ${org.id}`,
+        eq(scopes.status, "reserved")
+      )
+    );
+
+  const pendingScopeNames = [...new Set(pendingScopeRows.map((r) => r.scopeName).filter(Boolean))];
 
   return (
     <div className="px-6 md:px-12 lg:px-20 py-12 max-w-4xl mx-auto">
@@ -217,17 +234,28 @@ export default async function OrgDetailPage({
         )}
 
         {/* Pending namespace requests */}
-        {pendingRequests.length > 0 && (
+        {(pendingRequests.length > 0 || pendingScopeNames.length > 0) && (
           <div className="space-y-2 mt-2">
             {pendingRequests.map((pr) => (
               <div
                 key={pr.orgName}
-                className="flex items-center justify-between border border-amber-500/20 rounded-lg bg-amber-500/[0.03] px-4 py-3 opacity-70"
+                className="flex items-center justify-between border border-amber-500/20 rounded-lg bg-amber-500/3 px-4 py-3 opacity-70"
               >
                 <div className="flex items-center gap-2">
-                  <span className="font-mono text-sm t-heading">
-                    @{pr.orgName}
+                  <span className="font-mono text-sm t-heading">@{pr.orgName}</span>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 font-mono">
+                    pending review
                   </span>
+                </div>
+              </div>
+            ))}
+            {pendingScopeNames.map((scopeName) => (
+              <div
+                key={scopeName}
+                className="flex items-center justify-between border border-amber-500/20 rounded-lg bg-amber-500/3 px-4 py-3 opacity-70"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-sm t-heading">@{scopeName}</span>
                   <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 font-mono">
                     pending review
                   </span>
