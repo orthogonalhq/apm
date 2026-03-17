@@ -13,6 +13,7 @@ import { eq, and, sql } from "drizzle-orm";
 import { SyncFromGitHub } from "./sync-github";
 import { WebhookStatus } from "./webhook-status";
 import { DeletePackage } from "./delete-package";
+import { ScopeSettingsMenu } from "./scope-settings-menu";
 
 export async function generateMetadata({
   params,
@@ -132,10 +133,11 @@ export default async function NamespacePage({
           )}
           <Link
             href={`/packages/@${scopeName}`}
-            className="px-2 py-1 rounded text-[10px] font-mono t-ghost hover:t-meta hover:bg-white/[0.04] transition-colors border border-white/[0.06]"
+            className="px-2 py-1 rounded text-[10px] font-mono t-ghost hover:t-meta hover:bg-white/4 transition-colors border border-white/6"
           >
             Public page
           </Link>
+          <ScopeSettingsMenu orgName={name} scopeName={scopeName} isOwner={membership.role === "owner"} />
         </div>
       </div>
 
@@ -199,7 +201,7 @@ export default async function NamespacePage({
               <Link
                 key={pkg.id}
                 href={`/packages/@${scopeName}/${pkg.name}`}
-                className="flex items-center justify-between border border-white/[0.06] rounded-lg bg-surface px-4 py-3 hover:border-white/[0.12] transition-colors"
+                className="flex items-center justify-between border border-white/6 rounded-lg bg-surface px-4 py-3 hover:border-white/12 transition-colors"
               >
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
