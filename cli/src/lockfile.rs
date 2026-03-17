@@ -113,3 +113,90 @@ impl Lockfile {
         );
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn new_lockfile_is_empty() {
+        let lf = Lockfile::new();
+        assert_eq!(lf.lockfile_version, 2);
+        assert!(lf.packages.is_empty());
+    }
+
+    #[test]
+    fn add_and_remove_package() {
+        let mut lf = Lockfile::new();
+        lf.add_package(
+            "@apm/test",
+            "orthogonalhq/apm-skills",
+            "test",
+            "main",
+            Some("abc123"),
+            Some("sha256-deadbeef"),
+            Some("A test skill"),
+            Some("skill"),
+            vec![],
+            vec!["test".to_string()],
+        );
+        assert!(lf.packages.contains_key("@apm/test"));
+        assert_eq!(lf.packages["@apm/test"].commit_sha.as_deref(), Some("abc123"));
+        assert_eq!(lf.packages["@apm/test"].integrity.as_deref(), Some("sha256-deadbeef"));
+
+        lf.remove_package("@apm/test");
+        assert!(!lf.packages.contains_key("@apm/test"));
+    }
+
+    #[test]
+    fn serialization_roundtrip() {
+        let mut lf = Lockfile::new();
+        lf.add_package(
+            "@apm/init",
+            "orthogonalhq/apm-skills",
+            "init",
+            "main",
+            Some("abc123"),
+            Some("sha256-test"),
+            Some("APM init"),
+            Some("composite"),
+            vec!["@apm/search".to_string()],
+            vec![],
+        );
+
+        let json = serde_json::to_string_pretty(&lf).unwrap();
+        let parsed: Lockfile = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(parsed.lockfile_version, 2);
+        assert_eq!(parsed.packages.len(), 1);
+        let pkg = &parsed.packages["@apm/init"];
+        assert_eq!(pkg.source_repo, "orthogonalhq/apm-skills");
+        assert_eq!(pkg.commit_sha.as_deref(), Some("abc123"));
+        assert_eq!(pkg.integrity.as_deref(), Some("sha256-test"));
+        assert_eq!(pkg.kind.as_deref(), Some("composite"));
+        assert_eq!(pkg.dependencies, vec!["@apm/search"]);
+    }
+
+    #[test]
+    fn empty_optional_fields_omitted() {
+        let mut lf = Lockfile::new();
+        lf.add_package(
+            "@scope/name",
+            "owner/repo",
+            "path",
+            "main",
+            None,
+            None,
+            None,
+            None,
+            vec![],
+            vec![],
+        );
+
+        let json = serde_json::to_string(&lf).unwrap();
+        assert!(!json.contains("description"));
+        assert!(!json.contains("\"kind\""));
+        assert!(!json.contains("dependencies"));
+        assert!(!json.contains("tags"));
+    }
+}

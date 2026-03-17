@@ -78,6 +78,7 @@ Composite skill dependencies use the same resolution engine as all APM packages 
 - **DAG enforcement.** The dependency graph must be a directed acyclic graph. Circular dependencies are rejected at install time.
 - **Deduplication.** If two composite skills both depend on `@anthropics/testing-patterns`, it is installed once in `.skills/`.
 - **Version conflict handling.** If two composites require incompatible versions of the same atomic skill, install fails with a clear error (pnpm-style strict resolution).
+- **Partial failure.** If a dependency fails to install, the parent composite skill is still installed and a warning is logged. The missing dependency can be retried with `apm install`.
 
 ```bash
 apm install @anthropics/code-review
