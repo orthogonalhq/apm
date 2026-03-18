@@ -1,5 +1,14 @@
 # APM — Agent Package Manager
 
+[![CI](https://img.shields.io/github/actions/workflow/status/orthogonalhq/apm/ci.yml?style=for-the-badge&labelColor=1a1a1a)](https://github.com/orthogonalhq/apm/actions)
+[![License](https://img.shields.io/github/license/orthogonalhq/apm?style=for-the-badge&labelColor=1a1a1a)](LICENSE)
+[![Release](https://img.shields.io/github/v/release/orthogonalhq/apm?style=for-the-badge&labelColor=1a1a1a)](https://github.com/orthogonalhq/apm/releases)
+[![npm downloads](https://img.shields.io/npm/dt/@apm-cli/apm?style=for-the-badge&labelColor=1a1a1a)](https://www.npmjs.com/package/@apm-cli/apm)
+[![Skills Indexed](https://img.shields.io/endpoint?url=https://apm.orthg.nl/api/badge/registry&style=for-the-badge&labelColor=1a1a1a)](https://apm.orthg.nl/packages)
+[![TypeScript](https://img.shields.io/badge/TypeScript-Next.js_15-3178c6?style=for-the-badge&labelColor=1a1a1a&logo=typescript&logoColor=white)](app/)
+[![Rust](https://img.shields.io/badge/Rust-CLI-dea584?style=for-the-badge&labelColor=1a1a1a&logo=rust&logoColor=white)](cli/)
+[![Docs](https://img.shields.io/badge/docs-apm.orthg.nl-blue?style=for-the-badge&labelColor=1a1a1a)](https://docs.apm.orthg.nl)
+
 The package manager and public registry for [agent skills](https://agentskills.io/specification), from [Orthogonal](https://orthogonal.dev).
 
 Think "npm for AI agent skills." APM lets you discover, install, and share SKILL.md packages across 34+ agent products — Claude Code, Cursor, Gemini CLI, VS Code Copilot, and more.
