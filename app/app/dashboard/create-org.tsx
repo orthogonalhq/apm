@@ -76,10 +76,17 @@ export function CreateOrg() {
       body: JSON.stringify({ reason: requestReason.trim() }),
     });
 
+    const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
       setError(data.error || "Request failed");
       setRequesting(false);
+      return;
+    }
+
+    if (data.autoApproved) {
+      handleClose();
+      router.push(`/dashboard/orgs/${reserved.orgName}`);
+      router.refresh();
       return;
     }
 
