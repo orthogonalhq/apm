@@ -72,7 +72,7 @@ export function SearchModal({
       }, 300);
       return () => clearTimeout(timer);
     }
-  }, [open]);
+  }, [open, visible]);
 
   // Close on escape
   useEffect(() => {

@@ -25,9 +25,9 @@ export default function TermsPage() {
               1. Agreement
             </h2>
             <p>
-              These Terms of Service ("Terms") govern your use of APM (the "Service"),
+              These Terms of Service (&ldquo;Terms&rdquo;) govern your use of APM (the &ldquo;Service&rdquo;),
               including the registry at apm.orthg.nl, the APM CLI, and all related APIs.
-              The Service is operated by Orthogonal ("we", "us", "our").
+              The Service is operated by Orthogonal (&ldquo;we&rdquo;, &ldquo;us&rdquo;, &ldquo;our&rdquo;).
             </p>
             <p className="mt-2">
               By accessing or using the Service, you agree to be bound by these Terms. If
@@ -123,7 +123,7 @@ export default function TermsPage() {
             </p>
             <p className="mt-2">
               You represent that you have the right to publish the content and that it does
-              not violate any third party's rights.
+              not violate any third party&apos;s rights.
             </p>
           </section>
 
@@ -180,8 +180,8 @@ export default function TermsPage() {
               10. Disclaimers
             </h2>
             <p>
-              The Service is provided <strong className="text-fg/85">"as is"</strong> and{" "}
-              <strong className="text-fg/85">"as available"</strong> without warranties of
+              The Service is provided <strong className="text-fg/85">&ldquo;as is&rdquo;</strong> and{" "}
+              <strong className="text-fg/85">&ldquo;as available&rdquo;</strong> without warranties of
               any kind, express or implied. We do not warrant that the Service will be
               uninterrupted, error-free, or secure. We do not endorse, verify, or guarantee
               the safety or quality of any package published to or indexed by the registry.
@@ -199,7 +199,7 @@ export default function TermsPage() {
               11. Limitation of Liability
             </h2>
             <p>
-              To the maximum extent permitted by law, Orthogonal's total liability to you
+              To the maximum extent permitted by law, Orthogonal&apos;s total liability to you
               for any claims arising from or related to the Service is limited to the
               greater of (a) the amount you paid us in the 12 months preceding the claim,
               or (b) USD $50.
