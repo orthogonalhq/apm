@@ -232,10 +232,10 @@ export function OnboardingWizard() {
             {error && <p className="text-xs text-red-400 font-mono">{error}</p>}
 
             {reserved ? (
-              <div className="rounded-md border overflow-hidden">
+              <div>
                 {/* Checking */}
                 {reservedState === "checking" && (
-                  <div className="bg-white/4 border-white/8 p-4 flex items-center gap-3">
+                  <div className="rounded-md border bg-white/4 border-white/8 p-4 flex items-center gap-3">
                     <svg className="w-4 h-4 t-ghost animate-spin shrink-0" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
@@ -249,7 +249,7 @@ export function OnboardingWizard() {
 
                 {/* Claimed */}
                 {reservedState === "claimed" && (
-                  <div className="bg-emerald-500/10 border-emerald-500/20 p-4 space-y-3">
+                  <div className="rounded-md border bg-emerald-500/10 border-emerald-500/20 p-4 space-y-3">
                     <div className="flex items-center gap-2">
                       <svg className="w-4 h-4 text-emerald-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
@@ -270,7 +270,7 @@ export function OnboardingWizard() {
 
                 {/* Manual request form */}
                 {reservedState === "manual" && (
-                  <div className="bg-amber-500/5 border-amber-500/20 p-4 space-y-3">
+                  <div className="rounded-md border bg-amber-500/5 border-amber-500/20 p-4 space-y-3">
                     {requestSent ? (
                       <>
                         <p className="text-xs text-green-400 font-mono">Request submitted</p>
