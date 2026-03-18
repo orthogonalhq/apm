@@ -261,7 +261,7 @@ export function OnboardingWizard() {
                     </p>
                     <button
                       onClick={() => setStep("invite")}
-                      className="w-full py-2.5 rounded font-mono text-xs uppercase tracking-[0.15em] bg-accent text-black hover:bg-accent/90 transition-colors"
+                      className="w-full py-2.5 rounded font-mono text-xs uppercase tracking-[0.15em] bg-emerald-500 text-black hover:bg-emerald-400 transition-colors"
                     >
                       Continue
                     </button>
