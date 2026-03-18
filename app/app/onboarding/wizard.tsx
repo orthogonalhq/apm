@@ -10,6 +10,7 @@ interface Suggestion {
 }
 
 type Step = "org" | "invite";
+type ReservedState = "checking" | "claimed" | "manual";
 
 export function OnboardingWizard() {
   const router = useRouter();
@@ -25,6 +26,7 @@ export function OnboardingWizard() {
 
   // Reserved flow
   const [reserved, setReserved] = useState<{ orgName: string; message: string } | null>(null);
+  const [reservedState, setReservedState] = useState<ReservedState>("checking");
   const [requestReason, setRequestReason] = useState("");
   const [requestSent, setRequestSent] = useState(false);
   const [requesting, setRequesting] = useState(false);
@@ -32,11 +34,8 @@ export function OnboardingWizard() {
   // Invite step
   const [inviteUsername, setInviteUsername] = useState("");
   const [inviteRole, setInviteRole] = useState("member");
-  const [invitedUsers, setInvitedUsers] = useState<
-    { username: string; role: string }[]
-  >([]);
+  const [invitedUsers, setInvitedUsers] = useState<{ username: string; role: string }[]>([]);
 
-  // Fetch GitHub suggestions on mount
   useEffect(() => {
     fetch("/api/auth/github-orgs")
       .then((r) => r.json())
@@ -59,16 +58,15 @@ export function OnboardingWizard() {
       const res = await fetch("/api/orgs", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: orgName,
-          displayName: orgDisplayName || orgName,
-        }),
+        body: JSON.stringify({ name: orgName, displayName: orgDisplayName || orgName }),
       });
       const data = await res.json();
       if (!res.ok) {
         if (data.error === "reserved") {
           setReserved({ orgName: data.orgName, message: data.message });
-          // Immediately try auto-approval via GitHub org check
+          setReservedState("checking");
+          setLoading(false);
+          // Fire GitHub admin check immediately
           try {
             const reqRes = await fetch(`/api/orgs/${data.orgName}/request-access`, {
               method: "POST",
@@ -78,11 +76,12 @@ export function OnboardingWizard() {
             const reqData = await reqRes.json();
             if (reqRes.ok && reqData.autoApproved) {
               setOrgId(reqData.orgId);
-              setStep("invite");
-              return;
+              setReservedState("claimed");
+            } else {
+              setReservedState("manual");
             }
           } catch {
-            // Fall through to manual form
+            setReservedState("manual");
           }
           return;
         }
@@ -115,7 +114,7 @@ export function OnboardingWizard() {
       }
       if (data.autoApproved) {
         setOrgId(data.orgId);
-        setStep("invite");
+        setReservedState("claimed");
         return;
       }
       setRequestSent(true);
@@ -129,10 +128,7 @@ export function OnboardingWizard() {
   const addInvite = useCallback(() => {
     if (!inviteUsername.trim()) return;
     if (invitedUsers.some((u) => u.username === inviteUsername.trim())) return;
-    setInvitedUsers((prev) => [
-      ...prev,
-      { username: inviteUsername.trim(), role: inviteRole },
-    ]);
+    setInvitedUsers((prev) => [...prev, { username: inviteUsername.trim(), role: inviteRole }]);
     setInviteUsername("");
   }, [inviteUsername, inviteRole, invitedUsers]);
 
@@ -150,15 +146,15 @@ export function OnboardingWizard() {
   }, [router, orgId, invitedUsers]);
 
   return (
-    <div className="border border-white/[0.06] rounded-lg bg-surface">
+    <div className="border border-white/6 rounded-lg bg-surface">
       {/* Step indicator */}
-      <div className="flex border-b border-white/[0.06]">
+      <div className="flex border-b border-white/6">
         {(["org", "invite"] as const).map((s, i) => (
           <div
             key={s}
             className={`flex-1 py-3 text-center font-mono text-[10px] uppercase tracking-[0.15em] transition-colors ${
               step === s
-                ? "t-heading bg-white/[0.04]"
+                ? "t-heading bg-white/4"
                 : i < (["org", "invite"] as const).indexOf(step)
                   ? "text-accent"
                   : "t-ghost"
@@ -178,7 +174,7 @@ export function OnboardingWizard() {
                 Organization namespace
               </label>
               <div className="flex items-center">
-                <span className="bg-white/[0.06] border border-r-0 border-white/[0.08] rounded-l px-3 py-2 font-mono text-sm t-meta">
+                <span className="bg-white/6 border border-r-0 border-white/8 rounded-l px-3 py-2 font-mono text-sm t-meta">
                   @
                 </span>
                 <input
@@ -189,9 +185,10 @@ export function OnboardingWizard() {
                     setError("");
                     setReserved(null);
                     setRequestSent(false);
+                    setRequestReason("");
                   }}
                   placeholder="my-org"
-                  className="flex-1 bg-white/[0.04] border border-white/[0.08] rounded-r px-3 py-2 font-mono text-sm t-heading placeholder:t-ghost outline-none focus:border-accent/40 transition-colors"
+                  className="flex-1 bg-white/4 border border-white/8 rounded-r px-3 py-2 font-mono text-sm t-heading placeholder:t-ghost outline-none focus:border-accent/40 transition-colors"
                 />
               </div>
             </div>
@@ -205,7 +202,7 @@ export function OnboardingWizard() {
                 value={orgDisplayName}
                 onChange={(e) => setOrgDisplayName(e.target.value)}
                 placeholder="My Organization"
-                className="w-full bg-white/[0.04] border border-white/[0.08] rounded px-3 py-2 font-mono text-sm t-heading placeholder:t-ghost outline-none focus:border-accent/40 transition-colors"
+                className="w-full bg-white/4 border border-white/8 rounded px-3 py-2 font-mono text-sm t-heading placeholder:t-ghost outline-none focus:border-accent/40 transition-colors"
               />
             </div>
 
@@ -222,7 +219,7 @@ export function OnboardingWizard() {
                       className={`px-3 py-1.5 rounded text-[11px] font-mono border transition-colors ${
                         orgName === s.name.toLowerCase()
                           ? "bg-accent/10 border-accent/30 text-accent"
-                          : "bg-white/[0.04] border-white/[0.06] t-meta hover:border-white/[0.12]"
+                          : "bg-white/4 border-white/6 t-meta hover:border-white/12"
                       }`}
                     >
                       @{s.name}
@@ -232,49 +229,88 @@ export function OnboardingWizard() {
               </div>
             )}
 
-            {error && (
-              <p className="text-xs text-red-400 font-mono">{error}</p>
-            )}
+            {error && <p className="text-xs text-red-400 font-mono">{error}</p>}
 
             {reserved ? (
-              <div className="p-3 rounded-md bg-amber-500/5 border border-amber-500/20 space-y-3">
-                {requestSent ? (
-                  <>
-                    <p className="text-xs text-green-400 font-mono">Request submitted</p>
+              <div className="rounded-md border overflow-hidden">
+                {/* Checking */}
+                {reservedState === "checking" && (
+                  <div className="bg-white/4 border-white/8 p-4 flex items-center gap-3">
+                    <svg className="w-4 h-4 t-ghost animate-spin shrink-0" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                    <div>
+                      <p className="text-xs t-heading font-mono">Verifying GitHub ownership...</p>
+                      <p className="text-[11px] t-ghost mt-0.5">Checking if you&apos;re an admin of <span className="font-mono">@{reserved.orgName}</span></p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Claimed */}
+                {reservedState === "claimed" && (
+                  <div className="bg-accent/5 border-accent/20 p-4 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <svg className="w-4 h-4 text-accent shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                      <p className="text-sm font-mono text-accent font-medium">Namespace claimed!</p>
+                    </div>
                     <p className="text-xs t-nav">
-                      We&apos;ll review your request for <span className="font-mono text-accent">@{reserved.orgName}</span>. It will appear in your dashboard as pending.
+                      <span className="font-mono text-accent">@{reserved.orgName}</span> is now yours. GitHub org admin status verified.
                     </p>
                     <button
-                      onClick={() => router.push("/dashboard")}
+                      onClick={() => setStep("invite")}
                       className="w-full py-2.5 rounded font-mono text-xs uppercase tracking-[0.15em] bg-accent text-black hover:bg-accent/90 transition-colors"
                     >
-                      Go to Dashboard
+                      Continue
                     </button>
-                  </>
-                ) : (
-                  <>
-                    <p className="text-xs t-nav">{reserved.message}</p>
-                    <textarea
-                      value={requestReason}
-                      onChange={(e) => setRequestReason(e.target.value)}
-                      placeholder={`e.g. I'm an admin of the GitHub org that owns ${reserved.orgName}`}
-                      className="w-full bg-white/[0.04] border border-white/[0.08] rounded px-3 py-2 font-mono text-xs t-heading placeholder:t-ghost outline-none focus:border-accent/40 transition-colors resize-none h-20"
-                      autoFocus
-                    />
-                    <button
-                      onClick={handleRequestAccess}
-                      disabled={requesting}
-                      className="w-full py-2 rounded font-mono text-xs uppercase tracking-[0.15em] bg-accent text-black hover:bg-accent/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                    >
-                      {requesting ? "Submitting..." : "Submit Request"}
-                    </button>
-                    <button
-                      onClick={() => { setReserved(null); setError(""); setOrgName(""); setOrgDisplayName(""); }}
-                      className="w-full text-center text-[11px] font-mono t-ghost hover:t-meta transition-colors"
-                    >
-                      Use a different name
-                    </button>
-                  </>
+                  </div>
+                )}
+
+                {/* Manual request form */}
+                {reservedState === "manual" && (
+                  <div className="bg-amber-500/5 border-amber-500/20 p-4 space-y-3">
+                    {requestSent ? (
+                      <>
+                        <p className="text-xs text-green-400 font-mono">Request submitted</p>
+                        <p className="text-xs t-nav">
+                          We&apos;ll review your request for <span className="font-mono text-accent">@{reserved.orgName}</span>. It will appear in your dashboard as pending.
+                        </p>
+                        <button
+                          onClick={() => router.push("/dashboard")}
+                          className="w-full py-2.5 rounded font-mono text-xs uppercase tracking-[0.15em] bg-accent text-black hover:bg-accent/90 transition-colors"
+                        >
+                          Go to Dashboard
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-xs t-nav">{reserved.message}</p>
+                        <textarea
+                          value={requestReason}
+                          onChange={(e) => setRequestReason(e.target.value)}
+                          placeholder={`e.g. I'm an admin of the GitHub org that owns ${reserved.orgName}`}
+                          className="w-full bg-white/4 border border-white/8 rounded px-3 py-2 font-mono text-xs t-heading placeholder:t-ghost outline-none focus:border-accent/40 transition-colors resize-none h-20"
+                          autoFocus
+                        />
+                        {error && <p className="text-xs text-red-400 font-mono">{error}</p>}
+                        <button
+                          onClick={handleRequestAccess}
+                          disabled={requesting}
+                          className="w-full py-2 rounded font-mono text-xs uppercase tracking-[0.15em] bg-accent text-black hover:bg-accent/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                          {requesting ? "Submitting..." : "Submit Request"}
+                        </button>
+                        <button
+                          onClick={() => { setReserved(null); setOrgName(""); setOrgDisplayName(""); }}
+                          className="w-full text-center text-[11px] font-mono t-ghost hover:t-meta transition-colors"
+                        >
+                          Use a different name
+                        </button>
+                      </>
+                    )}
+                  </div>
                 )}
               </div>
             ) : (
@@ -304,13 +340,13 @@ export function OnboardingWizard() {
                 value={inviteUsername}
                 onChange={(e) => setInviteUsername(e.target.value)}
                 placeholder="GitHub username"
-                className="flex-1 bg-white/[0.04] border border-white/[0.08] rounded px-3 py-2 font-mono text-sm t-heading placeholder:t-ghost outline-none focus:border-accent/40 transition-colors"
+                className="flex-1 bg-white/4 border border-white/8 rounded px-3 py-2 font-mono text-sm t-heading placeholder:t-ghost outline-none focus:border-accent/40 transition-colors"
                 onKeyDown={(e) => e.key === "Enter" && addInvite()}
               />
               <select
                 value={inviteRole}
                 onChange={(e) => setInviteRole(e.target.value)}
-                className="bg-[#1a1a1a] border border-white/[0.08] rounded px-2 py-2 font-mono text-xs t-meta outline-none [&>option]:bg-[#1a1a1a] [&>option]:text-white/90"
+                className="bg-[#1a1a1a] border border-white/8 rounded px-2 py-2 font-mono text-xs t-meta outline-none [&>option]:bg-[#1a1a1a] [&>option]:text-white/90"
               >
                 <option value="member">Member</option>
                 <option value="admin">Admin</option>
@@ -318,7 +354,7 @@ export function OnboardingWizard() {
               <button
                 onClick={addInvite}
                 disabled={!inviteUsername.trim()}
-                className="px-3 py-2 rounded font-mono text-xs bg-white/[0.06] border border-white/[0.08] t-meta hover:text-fg transition-colors disabled:opacity-40"
+                className="px-3 py-2 rounded font-mono text-xs bg-white/6 border border-white/8 t-meta hover:text-fg transition-colors disabled:opacity-40"
               >
                 Add
               </button>
@@ -329,14 +365,10 @@ export function OnboardingWizard() {
                 {invitedUsers.map((u) => (
                   <div
                     key={u.username}
-                    className="flex items-center justify-between px-3 py-2 rounded bg-white/[0.04] border border-white/[0.06]"
+                    className="flex items-center justify-between px-3 py-2 rounded bg-white/4 border border-white/6"
                   >
-                    <span className="font-mono text-xs t-heading">
-                      {u.username}
-                    </span>
-                    <span className="font-mono text-[10px] t-ghost">
-                      {u.role}
-                    </span>
+                    <span className="font-mono text-xs t-heading">{u.username}</span>
+                    <span className="font-mono text-[10px] t-ghost">{u.role}</span>
                   </div>
                 ))}
               </div>
@@ -352,8 +384,8 @@ export function OnboardingWizard() {
             </div>
 
             <button
-              onClick={() => { router.push("/dashboard"); }}
-              className="w-full py-2 rounded font-mono text-xs uppercase tracking-[0.15em] bg-white/[0.06] border border-white/[0.08] t-nav hover:t-heading hover:bg-white/[0.1] transition-colors"
+              onClick={() => router.push("/dashboard")}
+              className="w-full py-2 rounded font-mono text-xs uppercase tracking-[0.15em] bg-white/6 border border-white/8 t-nav hover:t-heading hover:bg-white/10 transition-colors"
             >
               Skip for now
             </button>
