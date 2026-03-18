@@ -208,6 +208,8 @@ export default async function PackagePage({
   const installCmd = `apm install ${fullName}`;
   const pageUrl = `${BASE_URL}/packages/@${pkg.scope}/${pkg.name}`;
   const repoUrl = pkg.repoUrl ?? `https://github.com/${pkg.sourceRepo}`;
+  const badgeUrl = `https://img.shields.io/endpoint?url=${encodeURIComponent(`${BASE_URL}/api/badge/@${pkg.scope}/${pkg.name}`)}&style=flat-square`;
+  const badgeMarkdown = `[![APM](${badgeUrl})](${pageUrl})`;
 
   const jsonLd = [
     {
@@ -460,6 +462,21 @@ export default async function PackagePage({
                   </div>
                 </div>
               ))}
+
+              {/* Badge */}
+              <div className="border-y border-white/[0.06] -mt-px">
+                <PanelBar label="apm::badge" />
+                <div className="px-6 md:px-10 lg:px-5 py-4 space-y-3">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={badgeUrl} alt={`APM badge for ${fullName}`} height={20} />
+                  <div className="flex items-center gap-2">
+                    <code className="flex-1 text-[10px] font-mono t-ghost bg-white/[0.04] border border-white/[0.06] rounded px-2 py-1.5 break-all select-all leading-relaxed">
+                      {badgeMarkdown}
+                    </code>
+                    <CopyButton text={badgeMarkdown} />
+                  </div>
+                </div>
+              </div>
             </aside>
           </div>
       </div>

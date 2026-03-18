@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { parseScopedSlug, findPackage } from "@/lib/package-params";
+import { db } from "@/lib/db";
+import { packages } from "@/lib/db/schema";
+import { eq, count as countFn } from "drizzle-orm";
 
 const CACHE_HEADERS = {
   "Cache-Control": "public, max-age=3600",
@@ -17,6 +20,18 @@ export async function GET(
   { params }: { params: Promise<{ slug: string[] }> }
 ) {
   const { slug } = await params;
+
+  // GET /api/badge/registry — total package count
+  if (slug.length === 1 && slug[0] === "registry") {
+    const [result] = await db
+      .select({ count: countFn() })
+      .from(packages)
+      .where(eq(packages.status, "active"));
+    const total = result?.count ?? 0;
+    const noun = total === 1 ? "skill indexed" : "skills indexed";
+    return badgeJson("apm", `${total} ${noun}`, "brightgreen");
+  }
+
   const parsed = parseScopedSlug(slug);
 
   if (!parsed) {
