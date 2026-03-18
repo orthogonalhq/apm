@@ -24,6 +24,7 @@ export function CopyButton({
     <button
       onClick={handleCopy}
       title={copied ? "Copied" : "Copy"}
+      aria-label={copied ? "Copied" : "Copy"}
       className={`shrink-0 p-1.5 rounded-[2px] text-fg/70 hover:text-accent hover:bg-white/6 transition-all duration-200 active:scale-[0.97] ${className}`}
     >
       {copied ? (

@@ -51,6 +51,7 @@ export function RevokeToken({ tokenId, tokenName }: { tokenId: string; tokenName
         onClick={() => setOpen(true)}
         className="p-1.5 rounded hover:bg-red-500/10 transition-colors group"
         title="Revoke token"
+        aria-label="Revoke token"
       >
         <svg className="w-3.5 h-3.5 t-ghost group-hover:text-red-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />

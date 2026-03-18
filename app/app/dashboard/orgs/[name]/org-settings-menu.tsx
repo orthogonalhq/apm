@@ -103,6 +103,7 @@ export function OrgSettingsMenu({ orgName, displayName, isOwner }: { orgName: st
           onClick={() => setMenuOpen(!menuOpen)}
           className="p-1.5 rounded hover:bg-white/[0.06] transition-colors"
           title="Organization settings"
+          aria-label="Organization settings"
         >
           <svg className="w-4 h-4 t-ghost" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.75a.75.75 0 110-1.5.75.75 0 010 1.5zM12 12.75a.75.75 0 110-1.5.75.75 0 010 1.5zM12 18.75a.75.75 0 110-1.5.75.75 0 010 1.5z" />

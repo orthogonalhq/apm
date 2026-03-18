@@ -137,6 +137,7 @@ export function TokenActions({ mode }: { mode?: "button" }) {
                       onClick={handleCopy}
                       className="shrink-0 p-2 rounded bg-white/[0.06] border border-white/[0.08] hover:bg-white/[0.1] transition-colors"
                       title="Copy token"
+                      aria-label="Copy token"
                     >
                       {copied
                         ? <CheckIcon className="w-3.5 h-3.5 text-green-400" />
