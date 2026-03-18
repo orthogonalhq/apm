@@ -1,8 +1,8 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { cookies } from "next/headers";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   const clientId = process.env.GITHUB_CLIENT_ID;
   if (!clientId) {
     return NextResponse.json(
@@ -20,6 +20,18 @@ export async function GET() {
     maxAge: 600,
     path: "/",
   });
+
+  // Store redirect path if provided (for post-login redirect, e.g. invite links)
+  const redirect = req.nextUrl.searchParams.get("redirect");
+  if (redirect && redirect.startsWith("/") && !redirect.includes("//")) {
+    cookieStore.set("oauth_redirect", redirect, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 600,
+      path: "/",
+    });
+  }
 
   const params = new URLSearchParams({
     client_id: clientId,

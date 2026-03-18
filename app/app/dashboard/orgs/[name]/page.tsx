@@ -14,7 +14,7 @@ import {
 import { eq, and, sql, inArray } from "drizzle-orm";
 import { ScopeActions } from "../../scope-actions";
 import { OrgSettingsMenu } from "./org-settings-menu";
-import { InviteMember } from "./invite-member";
+import { InviteLink } from "./invite-member";
 import { MemberActions } from "./member-actions";
 
 export async function generateMetadata({
@@ -278,7 +278,7 @@ export default async function OrgDetailPage({
             Members
           </h2>
           {isOwnerOrAdmin && (
-            <InviteMember orgId={org.id} />
+            <InviteLink orgName={org.name} />
           )}
         </div>
 

@@ -11,7 +11,9 @@ export async function GET(req: NextRequest) {
 
   const cookieStore = await cookies();
   const savedState = cookieStore.get("oauth_state")?.value;
+  const savedRedirect = cookieStore.get("oauth_redirect")?.value;
   cookieStore.delete("oauth_state");
+  cookieStore.delete("oauth_redirect");
 
   if (!code || !state || state !== savedState) {
     return NextResponse.json(
@@ -81,6 +83,11 @@ export async function GET(req: NextRequest) {
     .where(eq(orgMembers.publisherId, publisherId))
     .limit(1);
 
-  const redirectTo = memberships.length === 0 ? "/onboarding" : "/";
+  // Priority: saved redirect (invite link) > onboarding > home
+  const redirectTo = (savedRedirect && savedRedirect.startsWith("/") && !savedRedirect.includes("//"))
+    ? savedRedirect
+    : memberships.length === 0
+      ? "/onboarding"
+      : "/";
   return NextResponse.redirect(new URL(redirectTo, req.url));
 }
