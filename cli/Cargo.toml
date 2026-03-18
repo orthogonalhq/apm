@@ -1,6 +1,6 @@
 [package]
 name = "apm"
-version = "0.4.1"
+version = "0.4.2"
 edition = "2021"
 description = "Agent Package Manager — a package manager for agent skills"
 license = "MIT"
