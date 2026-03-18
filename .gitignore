@@ -1,3 +1,7 @@
+# Skills (installed via apm)
+.skills/
+apm-lock.json
+
 # Dependencies
 node_modules/
 .pnpm-store/
