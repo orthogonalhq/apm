@@ -111,9 +111,19 @@ export default async function SettingsPage() {
     <div className="px-6 md:px-12 lg:px-20 py-12 max-w-7xl mx-auto">
       {/* Profile */}
       <section className="mb-12">
-        <h1 className="font-mono text-sm tracking-[0.08em] uppercase t-meta mb-6">
-          Profile
-        </h1>
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="font-mono text-sm tracking-[0.08em] uppercase t-meta">
+            Profile
+          </h1>
+          <form action="/api/auth/logout" method="POST">
+            <button
+              type="submit"
+              className="text-xs t-meta hover:t-nav transition-colors underline underline-offset-2"
+            >
+              Sign out
+            </button>
+          </form>
+        </div>
         <div className="flex items-center gap-4">
           {publisher.avatarUrl && (
             <Image
@@ -286,17 +296,6 @@ export default async function SettingsPage() {
         )}
       </section>
 
-      {/* Sign out */}
-      <section>
-        <form action="/api/auth/logout" method="POST">
-          <button
-            type="submit"
-            className="text-xs t-meta hover:t-nav transition-colors underline underline-offset-2"
-          >
-            Sign out
-          </button>
-        </form>
-      </section>
     </div>
   );
 }
