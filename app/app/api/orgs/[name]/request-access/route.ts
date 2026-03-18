@@ -89,7 +89,7 @@ export async function POST(
       metadata: { orgName: name, claimType: "org", approvedPublisherId: publisher.id, approvedBy: publisher.displayName, autoApproved: true, method: "github" },
     });
 
-    return NextResponse.json({ ok: true, autoApproved: true, orgName: name, status: "active", verified: true });
+    return NextResponse.json({ ok: true, autoApproved: true, orgName: name, orgId: org.id, status: "active", verified: true });
   }
 
   // Not a GitHub org admin — add as pending for manual review
