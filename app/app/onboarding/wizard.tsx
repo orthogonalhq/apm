@@ -68,6 +68,22 @@ export function OnboardingWizard() {
       if (!res.ok) {
         if (data.error === "reserved") {
           setReserved({ orgName: data.orgName, message: data.message });
+          // Immediately try auto-approval via GitHub org check
+          try {
+            const reqRes = await fetch(`/api/orgs/${data.orgName}/request-access`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({}),
+            });
+            const reqData = await reqRes.json();
+            if (reqRes.ok && reqData.autoApproved) {
+              setOrgId(reqData.orgId);
+              setStep("invite");
+              return;
+            }
+          } catch {
+            // Fall through to manual form
+          }
           return;
         }
         setError(data.error || "Failed to create organization");
@@ -83,7 +99,7 @@ export function OnboardingWizard() {
   }, [orgName, orgDisplayName]);
 
   const handleRequestAccess = useCallback(async () => {
-    if (!reserved || !requestReason.trim()) return;
+    if (!reserved) return;
     setRequesting(true);
     setError("");
     try {
@@ -92,9 +108,14 @@ export function OnboardingWizard() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ reason: requestReason }),
       });
+      const data = await res.json();
       if (!res.ok) {
-        const data = await res.json();
         setError(data.error || "Request failed");
+        return;
+      }
+      if (data.autoApproved) {
+        setOrgId(data.orgId);
+        setStep("invite");
         return;
       }
       setRequestSent(true);
@@ -242,7 +263,7 @@ export function OnboardingWizard() {
                     />
                     <button
                       onClick={handleRequestAccess}
-                      disabled={requesting || !requestReason.trim()}
+                      disabled={requesting}
                       className="w-full py-2 rounded font-mono text-xs uppercase tracking-[0.15em] bg-accent text-black hover:bg-accent/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                     >
                       {requesting ? "Submitting..." : "Submit Request"}
