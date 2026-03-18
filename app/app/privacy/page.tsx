@@ -25,9 +25,9 @@ export default function PrivacyPage() {
               1. Who We Are
             </h2>
             <p>
-              APM (Agent Package Manager) is operated by Orthogonal ("we", "us", "our").
+              APM (Agent Package Manager) is operated by Orthogonal (&ldquo;we&rdquo;, &ldquo;us&rdquo;, &ldquo;our&rdquo;).
               This policy describes how we collect, use, and protect information when you
-              use the APM registry, website, CLI, and APIs (collectively, the "Service").
+              use the APM registry, website, CLI, and APIs (collectively, the &ldquo;Service&rdquo;).
             </p>
           </section>
 

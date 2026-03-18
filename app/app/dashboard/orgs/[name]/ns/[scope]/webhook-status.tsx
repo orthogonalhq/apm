@@ -39,7 +39,7 @@ export function WebhookStatus({
       // silently fail
     }
     setLoading(false);
-  }, [orgName, repo]);
+  }, [orgName, repo, scopeName]);
 
   useEffect(() => {
     checkStatus();
@@ -64,7 +64,7 @@ export function WebhookStatus({
       setError("Network error");
     }
     setActionLoading(false);
-  }, [orgName, repo, checkStatus]);
+  }, [orgName, repo, scopeName, checkStatus]);
 
   const handleDisconnect = useCallback(async () => {
     if (!status?.hookId) return;
@@ -86,7 +86,7 @@ export function WebhookStatus({
       setError("Network error");
     }
     setActionLoading(false);
-  }, [orgName, repo, status?.hookId]);
+  }, [orgName, repo, scopeName, status?.hookId]);
 
   if (loading) {
     return (
