@@ -129,11 +129,11 @@ export function InviteLink({ orgName }: { orgName: string }) {
                   <div className="flex-1">
                     <label className="block font-mono text-[10px] uppercase tracking-[0.15em] t-ghost mb-1">Max uses</label>
                     <input
-                      type="number"
+                      type="text"
+                      inputMode="numeric"
                       value={maxUses}
-                      onChange={(e) => setMaxUses(e.target.value)}
+                      onChange={(e) => setMaxUses(e.target.value.replace(/[^0-9]/g, ""))}
                       placeholder="Unlimited"
-                      min={1}
                       className="w-full px-2 py-1.5 rounded bg-white/4 border border-white/8 text-xs font-mono t-heading placeholder:t-ghost outline-none focus:border-accent/40"
                     />
                   </div>
