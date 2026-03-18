@@ -84,6 +84,15 @@ impl Lockfile {
         self.packages.remove(name);
     }
 
+    /// Returns names of installed packages that list `name` as a dependency
+    pub fn dependants_of(&self, name: &str) -> Vec<String> {
+        self.packages
+            .iter()
+            .filter(|(_, pkg)| pkg.dependencies.iter().any(|d| d == name))
+            .map(|(k, _)| k.clone())
+            .collect()
+    }
+
     pub fn add_package(
         &mut self,
         name: &str,
