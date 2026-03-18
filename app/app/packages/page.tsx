@@ -4,6 +4,7 @@ import { db, schema } from "@/lib/db";
 import { sql, asc, desc, eq, and, arrayContains } from "drizzle-orm";
 import { PackageCard } from "@/components/package-card";
 import { PanelBar } from "@/components/panel-bar";
+import { PackageFilters } from "@/components/filter-select";
 import type { Metadata } from "next";
 import type { PackageKind } from "@apm/types";
 
@@ -88,18 +89,6 @@ const listSelect = {
 };
 
 // ── Helpers ────────────────────────────────────────────────
-
-const languageNames: Record<string, string> = {
-  en: "English", zh: "Chinese", ja: "Japanese", ko: "Korean",
-  es: "Spanish", fr: "French", de: "German", pt: "Portuguese",
-  ru: "Russian", ar: "Arabic", hi: "Hindi", it: "Italian",
-  nl: "Dutch", pl: "Polish", tr: "Turkish", vi: "Vietnamese",
-  th: "Thai", uk: "Ukrainian", sv: "Swedish", cs: "Czech",
-};
-
-function formatLanguage(code: string): string {
-  return languageNames[code] ?? code.toUpperCase();
-}
 
 type SortKey = "name" | "stars" | "recent" | "tokens";
 type Order = "asc" | "desc";
@@ -454,26 +443,6 @@ export default async function PackagesPage({
     return filterQS ? `${base}&${filterQS}` : base;
   }
 
-  function filterHref(key: string, value: string | undefined): string {
-    const p = new URLSearchParams();
-    if (q) p.set("q", q);
-    p.set("sort", sort);
-    p.set("order", order);
-    if (kind) p.set("kind", kind);
-    if (category) p.set("category", category);
-    if (license) p.set("license", license);
-    if (language) p.set("language", language);
-    if (verified) p.set("verified", verified);
-
-    if (value) {
-      p.set(key, value);
-    } else {
-      p.delete(key);
-    }
-
-    return `/packages?${p.toString()}`;
-  }
-
   const sortTabs: { key: SortKey; label: string }[] = [
     { key: "name", label: "Name" },
     { key: "stars", label: "Stars" },
@@ -571,51 +540,17 @@ export default async function PackagesPage({
           </div>
 
           {/* Filters */}
-          <div className="flex flex-wrap items-center gap-2 px-4 py-2.5 border-b border-white/[0.06]">
-            <FilterSelect
-              label="Kind"
-              value={kind}
-              options={filterOptions.kinds}
-              buildHref={(v) => filterHref("kind", v)}
-            />
-            <FilterSelect
-              label="Category"
-              value={category}
-              options={filterOptions.categories}
-              buildHref={(v) => filterHref("category", v)}
-            />
-            <FilterSelect
-              label="License"
-              value={license}
-              options={filterOptions.licenses}
-              buildHref={(v) => filterHref("license", v)}
-            />
-            <FilterSelect
-              label="Language"
-              value={language}
-              options={filterOptions.languages}
-              buildHref={(v) => filterHref("language", v)}
-              displayFn={formatLanguage}
-            />
-            <a
-              href={filterHref("verified", verified === "true" ? undefined : "true")}
-              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded text-[11px] font-mono border transition-colors shrink-0 ${
-                verified === "true"
-                  ? "bg-accent/10 border-accent/20 text-accent hover:bg-accent/20"
-                  : "bg-white/[0.04] border-white/[0.06] t-meta hover:bg-white/[0.06]"
-              }`}
-            >
-              Verified
-            </a>
-            {(kind || category || license || language || verified) && (
-              <a
-                href={`/packages?${q ? `q=${encodeURIComponent(q)}&` : ""}sort=${sort}&order=${order}`}
-                className="font-mono text-[10px] text-accent hover:underline shrink-0"
-              >
-                Clear
-              </a>
-            )}
-          </div>
+          <PackageFilters
+            q={q}
+            sort={sort}
+            order={order}
+            kind={kind}
+            category={category}
+            license={license}
+            language={language}
+            verified={verified}
+            filterOptions={filterOptions}
+          />
 
           <Suspense
             fallback={
@@ -642,54 +577,3 @@ export default async function PackagesPage({
   );
 }
 
-// ── Filter component ───────────────────────────────────────
-
-function FilterSelect({
-  label,
-  value,
-  options,
-  buildHref,
-  displayFn,
-}: {
-  label: string;
-  value?: string;
-  options: string[];
-  buildHref: (value: string | undefined) => string;
-  displayFn?: (value: string) => string;
-}) {
-  const display = (v: string) => (displayFn ? displayFn(v) : v);
-
-  return (
-    <div className="relative inline-flex items-center">
-      {value ? (
-        <a
-          href={buildHref(undefined)}
-          className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-[11px] font-mono bg-accent/10 border border-accent/20 text-accent hover:bg-accent/20 transition-colors"
-        >
-          {label}: {display(value)}
-          <span className="text-[9px] ml-0.5">✕</span>
-        </a>
-      ) : (
-        <div className="group relative">
-          <button className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-[11px] font-mono bg-white/[0.04] border border-white/[0.06] t-meta hover:bg-white/[0.06] transition-colors">
-            {label}
-            <span className="text-[9px] opacity-40">▾</span>
-          </button>
-          <div className="invisible group-hover:visible absolute top-full left-0 pt-1 z-50">
-            <div className="min-w-[140px] max-h-[240px] overflow-y-auto rounded border border-white/[0.08] bg-[#141414] shadow-xl">
-            {options.map((opt) => (
-              <a
-                key={opt}
-                href={buildHref(opt)}
-                className="block px-3 py-1.5 font-mono text-[11px] t-card-desc hover:bg-white/[0.06] hover:text-fg transition-colors"
-              >
-                {display(opt)}
-              </a>
-            ))}
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}

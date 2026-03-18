@@ -105,9 +105,11 @@ export function Footer() {
               Orthogonal
             </a>
           </span>
-          <span className="text-[10px] t-ghost font-mono uppercase tracking-[0.2em]">
-            MIT
-          </span>
+          <div className="flex items-center gap-3 text-[10px] t-ghost font-mono uppercase tracking-[0.2em]">
+            <Link href="/terms" className="hover:text-accent transition-colors">Terms</Link>
+            <Link href="/privacy" className="hover:text-accent transition-colors">Privacy</Link>
+            <span>MIT</span>
+          </div>
         </div>
       </div>
     </footer>
