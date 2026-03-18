@@ -4,7 +4,16 @@ export const metadata: Metadata = {
   title: "Sign In",
 };
 
-export default function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ redirect?: string }>;
+}) {
+  const { redirect } = await searchParams;
+  const githubUrl = redirect
+    ? `/api/auth/github?redirect=${encodeURIComponent(redirect)}`
+    : "/api/auth/github";
+
   return (
     <div className="flex-1 flex items-center justify-center px-6 py-24">
       <div className="w-full max-w-sm">
@@ -19,7 +28,7 @@ export default function LoginPage() {
 
         <div className="border border-white/[0.06] rounded-lg bg-surface p-6 space-y-4">
           <a
-            href="/api/auth/github"
+            href={githubUrl}
             className="flex items-center justify-center gap-3 w-full px-4 py-2.5 rounded-md bg-white/[0.06] hover:bg-white/[0.10] border border-white/[0.08] transition-colors text-sm t-heading"
           >
             <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">

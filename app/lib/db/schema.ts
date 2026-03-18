@@ -204,6 +204,34 @@ export const orgMembers = pgTable(
   ]
 );
 
+// ── Org Invites ───────────────────────────────────────────
+export const orgInvites = pgTable(
+  "org_invites",
+  {
+    id: uuid("id")
+      .primaryKey()
+      .default(sql`gen_random_uuid()`),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    token: text("token").notNull().unique(),
+    role: varchar("role", { length: 16 }).notNull().default("member"),
+    maxUses: integer("max_uses"),
+    useCount: integer("use_count").notNull().default(0),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+    createdBy: uuid("created_by")
+      .notNull()
+      .references(() => publishers.id),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("idx_org_invites_org").on(table.orgId),
+    index("idx_org_invites_token").on(table.token),
+  ]
+);
+
 // ── Scopes ────────────────────────────────────────────────
 export const scopes = pgTable(
   "scopes",

@@ -32,9 +32,9 @@ export function OnboardingWizard() {
   const [requesting, setRequesting] = useState(false);
 
   // Invite step
-  const [inviteUsername, setInviteUsername] = useState("");
-  const [inviteRole, setInviteRole] = useState("member");
-  const [invitedUsers, setInvitedUsers] = useState<{ username: string; role: string }[]>([]);
+  const [inviteLink, setInviteLink] = useState<string | null>(null);
+  const [inviteCopied, setInviteCopied] = useState(false);
+  const [creatingLink, setCreatingLink] = useState(false);
 
   useEffect(() => {
     fetch("/api/auth/github-orgs")
@@ -125,25 +125,32 @@ export function OnboardingWizard() {
     }
   }, [reserved, requestReason]);
 
-  const addInvite = useCallback(() => {
-    if (!inviteUsername.trim()) return;
-    if (invitedUsers.some((u) => u.username === inviteUsername.trim())) return;
-    setInvitedUsers((prev) => [...prev, { username: inviteUsername.trim(), role: inviteRole }]);
-    setInviteUsername("");
-  }, [inviteUsername, inviteRole, invitedUsers]);
-
-  const finish = useCallback(async () => {
-    if (orgId && invitedUsers.length > 0) {
-      for (const u of invitedUsers) {
-        await fetch(`/api/orgs/${orgId}/invite`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ username: u.username, role: u.role }),
-        }).catch(() => {});
+  const createInviteLink = useCallback(async () => {
+    if (!orgName) return;
+    setCreatingLink(true);
+    try {
+      const res = await fetch(`/api/orgs/${orgName}/invites`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ expiresInDays: 7 }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setInviteLink(data.url);
       }
+    } catch {
+      // silently fail
+    } finally {
+      setCreatingLink(false);
     }
-    router.push("/dashboard");
-  }, [router, orgId, invitedUsers]);
+  }, [orgName]);
+
+  function copyInviteLink() {
+    if (!inviteLink) return;
+    navigator.clipboard.writeText(inviteLink);
+    setInviteCopied(true);
+    setTimeout(() => setInviteCopied(false), 2000);
+  }
 
   return (
     <div className="border border-white/6 rounded-lg bg-surface">
@@ -334,60 +341,40 @@ export function OnboardingWizard() {
               You can always do this later from your dashboard.
             </p>
 
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={inviteUsername}
-                onChange={(e) => setInviteUsername(e.target.value)}
-                placeholder="GitHub username"
-                className="flex-1 bg-white/4 border border-white/8 rounded px-3 py-2 font-mono text-sm t-heading placeholder:t-ghost outline-none focus:border-accent/40 transition-colors"
-                onKeyDown={(e) => e.key === "Enter" && addInvite()}
-              />
-              <select
-                value={inviteRole}
-                onChange={(e) => setInviteRole(e.target.value)}
-                className="bg-[#1a1a1a] border border-white/8 rounded px-2 py-2 font-mono text-xs t-meta outline-none [&>option]:bg-[#1a1a1a] [&>option]:text-white/90"
-              >
-                <option value="member">Member</option>
-                <option value="admin">Admin</option>
-              </select>
-              <button
-                onClick={addInvite}
-                disabled={!inviteUsername.trim()}
-                className="px-3 py-2 rounded font-mono text-xs bg-white/6 border border-white/8 t-meta hover:text-fg transition-colors disabled:opacity-40"
-              >
-                Add
-              </button>
-            </div>
-
-            {invitedUsers.length > 0 && (
-              <div className="space-y-1">
-                {invitedUsers.map((u) => (
-                  <div
-                    key={u.username}
-                    className="flex items-center justify-between px-3 py-2 rounded bg-white/4 border border-white/6"
+            {inviteLink ? (
+              <div className="space-y-3">
+                <p className="font-mono text-[10px] uppercase tracking-[0.15em] t-ghost">Share this link</p>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    readOnly
+                    value={inviteLink}
+                    className="flex-1 bg-white/4 border border-white/8 rounded px-3 py-2 font-mono text-xs t-heading outline-none"
+                  />
+                  <button
+                    onClick={copyInviteLink}
+                    className="shrink-0 px-3 py-2 rounded font-mono text-xs bg-white/6 border border-white/8 t-meta hover:text-fg transition-colors"
                   >
-                    <span className="font-mono text-xs t-heading">{u.username}</span>
-                    <span className="font-mono text-[10px] t-ghost">{u.role}</span>
-                  </div>
-                ))}
+                    {inviteCopied ? "Copied!" : "Copy"}
+                  </button>
+                </div>
+                <p className="text-[11px] t-ghost">Anyone with this link can join as a member. Expires in 7 days.</p>
               </div>
-            )}
-
-            <div className="flex gap-3 pt-2">
+            ) : (
               <button
-                onClick={finish}
-                className="flex-1 py-2.5 rounded font-mono text-xs uppercase tracking-[0.15em] bg-accent text-black hover:bg-accent/90 transition-colors"
+                onClick={createInviteLink}
+                disabled={creatingLink}
+                className="w-full py-2.5 rounded font-mono text-xs uppercase tracking-[0.15em] bg-white/6 border border-white/8 t-heading hover:bg-white/10 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                {invitedUsers.length > 0 ? "Send Invites & Finish" : "Finish Setup"}
+                {creatingLink ? "Creating..." : "Create invite link"}
               </button>
-            </div>
+            )}
 
             <button
               onClick={() => router.push("/dashboard")}
-              className="w-full py-2 rounded font-mono text-xs uppercase tracking-[0.15em] bg-white/6 border border-white/8 t-nav hover:t-heading hover:bg-white/10 transition-colors"
+              className="w-full py-2.5 rounded font-mono text-xs uppercase tracking-[0.15em] bg-accent text-black hover:bg-accent/90 transition-colors"
             >
-              Skip for now
+              {inviteLink ? "Finish Setup" : "Skip for now"}
             </button>
           </div>
         )}
